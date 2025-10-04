@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>선택과목 코드 변환 시스템</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/papaparse@5.3.2/papaparse.min.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        /* 추가적인 글로벌 스타일이 필요하다면 여기에 작성할 수 있습니다. */
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useCallback, useRef, StrictMode } = React;
+
+        const SchoolLogo = ({ className }) => (
+            <svg className={`w-full h-full ${className || 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v11.494m-9-5.747h18M12 6.253l-4.5 2.25M12 6.253l4.5 2.25m-8.5 4.5l4.5-2.25m0 0l4.5 2.25m-4.5-2.25V3.753m-4.5 2.25l4.5 2.25m0 0l4.5 2.25m0 0v11.25m-4.5-2.25v-2.25m0 0l-4.5-2.25m4.5 2.25l4.5-2.25" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H20.945C21.53 11 22 11.47 22 12v1.944c0 .53-.47 1-1.055 1H3.055C2.47 14.944 2 14.474 2 13.944V12c0-.53.47-1 1.055-1z" />
+            </svg>
+        );
+
+        const App = () => {
+            const [academicYear, setAcademicYear] = useState("2025");
+            const [semester, setSemester] = useState("1학기");
+            const [uploadedFile, setUploadedFile] = useState(null);
+            const [transformedData, setTransformedData] = useState(null);
+            const [classData, setClassData] = useState(null);
+            const [isLoading, setIsLoading] = useState(false);
+            const [error, setError] = useState(null);
+            const [schoolLogo, setSchoolLogo] = useState(null);
+            const [displayView, setDisplayView] = useState(null);
+
+            const logoInputRef = useRef(null);
+
+            const handleFileChange = (event) => {
+                if (event.target.files && event.target.files.length > 0) {
+                    setUploadedFile(event.target.files[0]);
+                    setTransformedData(null);
+                    setClassData(null);
+                    setError(null);
+                    setDisplayView(null);
+                }
+            };
+
+            const handleLogoChange = (event) => {
+                if (event.target.files && event.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        if (e.target && typeof e.target.result === 'string') {
+                            setSchoolLogo(e.target.result);
+                        }
+                    };
+                    reader.readAsDataURL(event.target.files[0]);
+                }
+            };
+            
+            const handleLogoUploadClick = () => {
+                logoInputRef.current?.click();
+            };
+
+            const transformData = useCallback((data) => {
+                const baseColumns = ['순번', '학번', '이름'];
+                const subjectColumns = Object.keys(data[0]).filter(col => !baseColumns.includes(col));
+                
+                const longFormatData = [];
+                data.forEach(student => {
+                    const studentId = student['학번'];
+                    subjectColumns.forEach(subject => {
+                        let code = student[subject];
+                        let subjectName = subject;
+
+                        if (code && code.trim() !== '') {
+                            // 2025학년도 2학년 일본어I 'Ca', 'Cb'를 'C'코드로 처리하고 과목명 변경
+                            if (
+                                academicYear === '2025' &&
+                                studentId?.startsWith('2') &&
+                                (code === 'Ca' || code === 'Cb') &&
+                                subject.includes('일본어')
+                            ) {
+                                subjectName = `${subject}(${code})`;
+                                code = 'C';
+                            }
+
+                            longFormatData.push({
+                                '순번': student['순번'],
+                                '학번': studentId,
+                                '이름': student['이름'],
+                                '과목명': subjectName,
+                                '코드': code
+                            });
+                        }
+                    });
+                });
+                
+                const pivotedDataMap = new Map();
+                longFormatData.forEach(row => {
+                    const studentId = row['학번'];
+                    if (!pivotedDataMap.has(studentId)) {
+                        pivotedDataMap.set(studentId, {
+                            '순번': row['순번'],
+                            '학번': row['학번'],
+                            '이름': row['이름'],
+                        });
+                    }
+                    const studentRecord = pivotedDataMap.get(studentId);
+                    if(studentRecord) {
+                        studentRecord[row['코드']] = row['과목명'];
+                    }
+                });
+
+                const sortedData = Array.from(pivotedDataMap.values()).sort((a, b) => {
+                    const studentIdA = parseInt(a['학번'], 10);
+                    const studentIdB = parseInt(b['학번'], 10);
+                    return studentIdA - studentIdB;
+                });
+                return sortedData;
+            }, [academicYear]);
+
+            const groupDataByClass = (data) => {
+                const grouped = new Map();
+                data.forEach(row => {
+                    const studentId = row['학번'];
+                    if (studentId && studentId.length >= 3) {
+                        const classPrefix = studentId.substring(0, 3); // e.g., '301', '201'
+                        const grade = classPrefix[0];
+                        const classNum = parseInt(classPrefix.substring(1), 10);
+                        const className = `${grade}-${classNum}`; // e.g., '3-1', '2-1'
+                        
+                        if (!grouped.has(className)) {
+                            grouped.set(className, []);
+                        }
+                        grouped.get(className)?.push(row);
+                    }
+                });
+                return new Map([...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true })));
+            };
+
+            const handleTransformClick = useCallback(() => {
+                if (!uploadedFile) {
+                    setError("파일이 선택되지 않았습니다.");
+                    return;
+                }
+
+                setIsLoading(true);
+                setError(null);
+                setTransformedData(null);
+                setClassData(null);
+                setDisplayView(null);
+
+                Papa.parse(uploadedFile, {
+                    header: true,
+                    skipEmptyLines: true,
+                    encoding: 'utf-8-sig',
+                    complete: (results) => {
+                        try {
+                            if (!results.data.length) {
+                              throw new Error("CSV 파일이 비어있거나 형식이 잘못되었습니다.");
+                            }
+                            const requiredCols = ['순번', '학번', '이름'];
+                            const firstRow = results.data[0];
+                            if (!requiredCols.every(col => col in firstRow)) {
+                              throw new Error(`CSV 파일에 필수 컬럼(${requiredCols.join(', ')})이 없습니다.`);
+                            }
+
+                            const transformed = transformData(results.data);
+                            setTransformedData(transformed);
+                            
+                            const groupedByClass = groupDataByClass(transformed);
+                            setClassData(groupedByClass);
+                            setDisplayView({ type: 'individual', key: 'all'});
+
+
+                        } catch (e) {
+                            setError(`변환 중 오류 발생: ${e.message}`);
+                        } finally {
+                            setIsLoading(false);
+                        }
+                    },
+                    error: (err) => {
+                        setError(`CSV 파싱 오류: ${err.message}`);
+                        setIsLoading(false);
+                    }
+                });
+
+            }, [uploadedFile, transformData]);
+
+            const handlePrint = () => {
+                const printableContent = document.getElementById('printable-content');
+                if (!printableContent) return;
+            
+                const printWindow = window.open('', '_blank', 'height=800,width=1200');
+                if (printWindow) {
+                    printWindow.document.write('<!DOCTYPE html><html><head><title>인쇄</title>');
+                    printWindow.document.write('<script src="https://cdn.tailwindcss.com"><\/script>');
+                    printWindow.document.write(`
+                        <style>
+                            @page { 
+                                size: A4 landscape; 
+                                margin: 1cm; 
+                            }
+                            @media print {
+                                html, body {
+                                    margin: 0;
+                                    padding: 0;
+                                }
+                                body {
+                                    font-family: sans-serif;
+                                    -webkit-print-color-adjust: exact;
+                                    color-adjust: exact;
+                                    width: 100%;
+                                }
+                                table {
+                                    width: 100% !important;
+                                }
+                                th, td {
+                                   padding-top: 1px !important;
+                                   padding-bottom: 1px !important;
+                                }
+                                .print-bg-blue-100 {
+                                    background-color: #DBEAFE !important;
+                                }
+                                .overflow-x-auto {
+                                    overflow: visible !important;
+                                }
+                            }
+                        </style>
+                    `);
+                    printWindow.document.write('</head><body>');
+                    printWindow.document.write(printableContent.innerHTML);
+                    printWindow.document.write('</body></html>');
+                    printWindow.document.close();
+                    
+                    printWindow.onload = () => {
+                        setTimeout(() => {
+                            printWindow.focus();
+                            printWindow.print();
+                            printWindow.close();
+                        }, 500); 
+                    };
+                } else {
+                    alert('팝업이 차단되었습니다. 인쇄 기능을 사용하려면 팝업을 허용해주세요.');
+                }
+            };
+            
+            const ResultsTable = ({data, columns}) => (
+                <table className="min-w-full divide-y divide-gray-200 border print-table">
+                    <thead className="bg-blue-100 print-bg-blue-100">
+                        <tr>
+                            {columns.map(col => (
+                                <th key={col} scope="col" className="px-2 py-0.5 text-center align-middle text-sm font-bold text-gray-700 uppercase tracking-wider border-l whitespace-nowrap">
+                                    {col}
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {data.map((row, index) => (
+                            <tr key={index}>
+                                {columns.map(col => (
+                                    <td key={col} className="px-2 py-0.5 whitespace-nowrap text-center align-middle text-sm text-gray-700 border-l">
+                                        {row[col] || ''}
+                                    </td>
+                                ))}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            );
+
+            const getDisplayData = () => {
+                if (!displayView) return null;
+
+                if (displayView.type === 'individual' && transformedData) {
+                    const inferredGrade = transformedData[0]?.['학번']?.[0];
+                    const title = inferredGrade 
+                        ? `${academicYear}학년도 ${semester} ${inferredGrade}학년 선택과목 현황 (전체)`
+                        : `${academicYear}학년도 ${semester} 선택과목 현황 (전체)`;
+                    return { title, data: transformedData };
+                }
+                
+                if (displayView.type === 'class' && classData) {
+                    const data = classData.get(displayView.key);
+                    const inferredGrade = displayView.key[0];
+                    if (data) {
+                        return {
+                            title: `${academicYear}학년도 ${semester} ${inferredGrade}학년 ${displayView.key}반 선택과목 현황`,
+                            data: data,
+                        };
+                    }
+                }
+                return null;
+            }
+            
+            const displayedContent = getDisplayData();
+            
+            const baseOutputColumns = ['학번', '이름'];
+            const subjectColumnsGrade2 = ['A', 'B', 'C', 'D', 'E'];
+            const subjectColumnsGrade3 = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+
+            let displayedColumns = [...baseOutputColumns, ...subjectColumnsGrade3]; 
+
+            if (displayedContent && displayedContent.data.length > 0) {
+                let grade = '3'; 
+                
+                if (displayView?.type === 'class') {
+                    grade = displayView.key[0];
+                } else if (displayView?.type === 'individual') {
+                    const firstStudentGrade = displayedContent.data[0]?.['학번']?.[0];
+                    if (firstStudentGrade === '2' || firstStudentGrade === '3') {
+                        grade = firstStudentGrade;
+                    }
+                }
+
+                if (grade === '2') {
+                    displayedColumns = [...baseOutputColumns, ...subjectColumnsGrade2];
+                }
+            }
+
+
+            return (
+                <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4 sm:p-6 lg:p-8">
+                    <div className="w-full max-w-7xl mx-auto">
+                        <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
+                            <header className="flex justify-between items-center p-6 sm:p-8 bg-gradient-to-r from-blue-600 to-indigo-700">
+                                <div className="flex-1">
+                                    <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+                                        선택과목 코드 변환 시스템
+                                    </h1>
+                                </div>
+                                <div className="flex-shrink-0 w-16 h-16">
+                                   <SchoolLogo className="text-white"/>
+                                </div>
+                            </header>
+                            
+                            <div className="p-8 space-y-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                       <label htmlFor="academicYear" className="block text-base font-medium text-gray-700">학년도</label>
+                                       <input
+                                           type="number"
+                                           id="academicYear"
+                                           value={academicYear}
+                                           onChange={(e) => setAcademicYear(e.target.value)}
+                                           className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-base"
+                                       />
+                                    </div>
+                                    <div>
+                                       <label htmlFor="semester" className="block text-base font-medium text-gray-700">학기</label>
+                                       <select
+                                           id="semester"
+                                           value={semester}
+                                           onChange={(e) => setSemester(e.target.value)}
+                                           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md"
+                                       >
+                                           <option>1학기</option>
+                                           <option>2학기</option>
+                                       </select>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end">
+                                     <input
+                                        type="file"
+                                        ref={logoInputRef}
+                                        onChange={handleLogoChange}
+                                        className="sr-only"
+                                        accept="image/*"
+                                        id="logo-upload"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleLogoUploadClick}
+                                        className="px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                    >
+                                        로고 업로드
+                                    </button>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-base font-medium text-gray-700 mb-2">
+                                        '선택과목.csv' 파일을 업로드하세요.
+                                    </label>
+                                    <label htmlFor="file-upload" className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-blue-500 transition-colors">
+                                        <div className="space-y-1 text-center">
+                                            <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                            <div className="flex justify-center text-base text-gray-600">
+                                                <p className="font-medium text-blue-600 hover:text-blue-500">
+                                                    파일 선택
+                                                </p>
+                                                <p className="pl-1">또는 드래그 앤 드롭</p>
+                                            </div>
+                                            <p className="text-sm text-gray-500">CSV 파일만 가능</p>
+                                            <p className="text-sm text-red-500">업로드할 파일은 CSV (UTF-8) 형식이어야 합니다.</p>
+                                            {uploadedFile && <p className="text-base text-green-600 pt-2 font-semibold">{uploadedFile.name}</p>}
+                                        </div>
+                                        <input id="file-upload" name="file-upload" type="file" className="sr-only" accept=".csv" onChange={handleFileChange} />
+                                    </label>
+                                </div>
+                                
+                                {uploadedFile && (
+                                    <div className="text-center">
+                                        <button
+                                            onClick={handleTransformClick}
+                                            disabled={isLoading}
+                                            className="w-full sm:w-auto inline-flex justify-center py-3 px-6 border border-transparent shadow-sm text-lg font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                        >
+                                            {isLoading ? '변환 중...' : '변환 시작'}
+                                        </button>
+                                    </div>
+                                )}
+                                
+                                {error && (
+                                    <div className="bg-red-50 border-l-4 border-red-400 p-4">
+                                         <div className="flex">
+                                            <div className="flex-shrink-0">
+                                                 <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                                 </svg>
+                                            </div>
+                                            <div className="ml-3">
+                                                 <p className="text-base text-red-700">{error}</p>
+                                            </div>
+                                         </div>
+                                    </div>
+                                )}
+
+                                {transformedData && classData && (
+                                    <div>
+                                        <div className="bg-green-50 border-l-4 border-green-400 p-4 space-y-4">
+                                             <div className="flex">
+                                                <div className="flex-shrink-0">
+                                                     <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                     </svg>
+                                                </div>
+                                                <div className="ml-3">
+                                                     <p className="text-base font-medium text-green-800">✅ 변환이 완료되었습니다. 아래에서 확인할 결과를 선택하세요.</p>
+                                                </div>
+                                             </div>
+                                        </div>
+                                        
+                                        <div className="mt-6 p-4 border rounded-lg">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <p className="text-lg font-semibold text-gray-800">결과 보기</p>
+                                                <button
+                                                    onClick={handlePrint}
+                                                    disabled={!displayedContent}
+                                                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400"
+                                                >
+                                                    인쇄하기
+                                                </button>
+                                            </div>
+                                            <div className="flex flex-wrap gap-3">
+                                                <button 
+                                                    onClick={() => setDisplayView({ type: 'individual', key: 'all'})}
+                                                    className={`px-4 py-2 text-base font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${displayView?.type === 'individual' ? 'bg-green-600 text-white focus:ring-green-500' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 focus:ring-blue-500'}`}
+                                                >
+                                                    전체
+                                                </button>
+                                                {Array.from(classData.keys()).map(className => (
+                                                    <button 
+                                                        key={className}
+                                                        onClick={() => setDisplayView({ type: 'class', key: className})}
+                                                        className={`px-4 py-2 text-base font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${displayView?.type === 'class' && displayView?.key === className ? 'bg-green-600 text-white focus:ring-green-500' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 focus:ring-blue-500'}`}
+                                                    >
+                                                        {className}반
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        
+                                        {displayedContent && (
+                                            <div className="mt-8">
+                                                <div id="printable-content" className="printable-area bg-white p-8 border shadow-lg relative">
+                                                    <div className="relative text-center mb-2">
+                                                        <h2 className="text-2xl font-bold text-gray-800">{displayedContent.title}</h2>
+                                                        {/* 로고 위치 수정: -top-12 -> -top-10 */}
+                                                        <div className="absolute -top-10 right-6 w-28 h-28">
+                                                            {schoolLogo ? (
+                                                                <img src={schoolLogo} alt="School Logo" className="w-full h-full object-contain" />
+                                                            ) : (
+                                                                <SchoolLogo className="text-gray-400"/>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="overflow-x-auto">
+                                                        <ResultsTable data={displayedContent.data} columns={displayedColumns} />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const rootElement = document.getElementById('root');
+        const root = ReactDOM.createRoot(rootElement);
+        root.render(
+          <StrictMode>
+            <App />
+          </StrictMode>
+        );
+
+    </script>
+</body>
+</html>
