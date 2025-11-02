@@ -6,6 +6,7 @@
     <title>선택과목 코드 변환 시스템</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/papaparse@5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -20,7 +21,7 @@
         const { useState, useCallback, useRef, StrictMode } = React;
 
         const SchoolLogo = ({ className }) => (
-            <svg className={`w-full h-full ${className || 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg className={`w-full h-full ${className || 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v11.494m-9-5.747h18M12 6.253l-4.5 2.25M12 6.253l4.5 2.25m-8.5 4.5l4.5-2.25m0 0l4.5 2.25m-4.5-2.25V3.753m-4.5 2.25l4.5 2.25m0 0l4.5 2.25m0 0v11.25m-4.5-2.25v-2.25m0 0l-4.5-2.25m4.5 2.25l4.5-2.25" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H20.945C21.53 11 22 11.47 22 12v1.944c0 .53-.47 1-1.055 1H3.055C2.47 14.944 2 14.474 2 13.944V12c0-.53.47-1 1.055-1z" />
             </svg>
@@ -71,12 +72,12 @@
                 
                 const longFormatData = [];
                 data.forEach(student => {
-                    const studentId = student['학번'];
+                    const studentId = student['학번'] ? String(student['학번']) : '';
                     subjectColumns.forEach(subject => {
                         let code = student[subject];
                         let subjectName = subject;
 
-                        if (code && code.trim() !== '') {
+                        if (code && String(code).trim() !== '') {
                             // 2025학년도 2학년 일본어I 'Ca', 'Cb'를 'C'코드로 처리하고 과목명 변경
                             if (
                                 academicYear === '2025' &&
@@ -126,7 +127,7 @@
             const groupDataByClass = (data) => {
                 const grouped = new Map();
                 data.forEach(row => {
-                    const studentId = row['학번'];
+                    const studentId = row['학번'] ? String(row['학번']) : '';
                     if (studentId && studentId.length >= 3) {
                         const classPrefix = studentId.substring(0, 3); // e.g., '301', '201'
                         const grade = classPrefix[0];
@@ -154,41 +155,69 @@
                 setClassData(null);
                 setDisplayView(null);
 
-                Papa.parse(uploadedFile, {
-                    header: true,
-                    skipEmptyLines: true,
-                    encoding: 'utf-8-sig',
-                    complete: (results) => {
-                        try {
-                            if (!results.data.length) {
-                              throw new Error("CSV 파일이 비어있거나 형식이 잘못되었습니다.");
-                            }
-                            const requiredCols = ['순번', '학번', '이름'];
-                            const firstRow = results.data[0];
-                            if (!requiredCols.every(col => col in firstRow)) {
-                              throw new Error(`CSV 파일에 필수 컬럼(${requiredCols.join(', ')})이 없습니다.`);
-                            }
-
-                            const transformed = transformData(results.data);
-                            setTransformedData(transformed);
-                            
-                            const groupedByClass = groupDataByClass(transformed);
-                            setClassData(groupedByClass);
-                            setDisplayView({ type: 'individual', key: 'all'});
-
-
-                        } catch (e) {
-                            setError(`변환 중 오류 발생: ${e.message}`);
-                        } finally {
-                            setIsLoading(false);
+                // 파싱 후 공통으로 실행될 데이터 처리 함수
+                const processData = (parsedData) => {
+                    try {
+                        if (!parsedData || parsedData.length === 0) {
+                            throw new Error("파일이 비어있거나 데이터가 없습니다.");
                         }
-                    },
-                    error: (err) => {
-                        setError(`CSV 파싱 오류: ${err.message}`);
+                        const requiredCols = ['순번', '학번', '이름'];
+                        const firstRow = parsedData[0];
+                        if (!requiredCols.every(col => col in firstRow)) {
+                            throw new Error(`파일에 필수 컬럼(${requiredCols.join(', ')})이 없습니다.`);
+                        }
+
+                        const transformed = transformData(parsedData);
+                        setTransformedData(transformed);
+                        
+                        const groupedByClass = groupDataByClass(transformed);
+                        setClassData(groupedByClass);
+                        setDisplayView({ type: 'individual', key: 'all' });
+                    } catch (e) {
+                        setError(`변환 중 오류 발생: ${e.message}`);
+                    } finally {
                         setIsLoading(false);
                     }
-                });
+                };
+                
+                const fileExtension = uploadedFile.name.split('.').pop().toLowerCase();
+                const reader = new FileReader();
 
+                if (fileExtension === 'csv') {
+                    reader.onload = (event) => {
+                        Papa.parse(event.target.result, {
+                            header: true,
+                            skipEmptyLines: true,
+                            encoding: 'utf-8-sig',
+                            complete: (results) => {
+                                processData(results.data);
+                            },
+                            error: (err) => {
+                                setError(`CSV 파싱 오류: ${err.message}`);
+                                setIsLoading(false);
+                            }
+                        });
+                    };
+                    reader.readAsText(uploadedFile);
+                } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+                    reader.onload = (event) => {
+                        try {
+                            const data = new Uint8Array(event.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const sheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[sheetName];
+                            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                            processData(jsonData);
+                        } catch (e) {
+                            setError(`Excel 파일 처리 오류: ${e.message}`);
+                            setIsLoading(false);
+                        }
+                    };
+                    reader.readAsArrayBuffer(uploadedFile);
+                } else {
+                    setError("지원하지 않는 파일 형식입니다. CSV 또는 Excel 파일을 업로드하세요.");
+                    setIsLoading(false);
+                }
             }, [uploadedFile, transformData]);
 
             const handlePrint = () => {
@@ -312,7 +341,9 @@
                 if (displayView?.type === 'class') {
                     grade = displayView.key[0];
                 } else if (displayView?.type === 'individual') {
-                    const firstStudentGrade = displayedContent.data[0]?.['학번']?.[0];
+                    const firstStudentId = displayedContent.data[0]?.['학번'];
+                    const firstStudentGrade = firstStudentId ? String(firstStudentId)[0] : null;
+
                     if (firstStudentGrade === '2' || firstStudentGrade === '3') {
                         grade = firstStudentGrade;
                     }
@@ -385,7 +416,7 @@
                                 
                                 <div>
                                     <label className="block text-base font-medium text-gray-700 mb-2">
-                                        '선택과목.csv' 파일을 업로드하세요.
+                                        선택과목 파일을 업로드하세요.
                                     </label>
                                     <label htmlFor="file-upload" className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-blue-500 transition-colors">
                                         <div className="space-y-1 text-center">
@@ -398,11 +429,13 @@
                                                 </p>
                                                 <p className="pl-1">또는 드래그 앤 드롭</p>
                                             </div>
-                                            <p className="text-sm text-gray-500">CSV 파일만 가능</p>
-                                            <p className="text-sm text-red-500">업로드할 파일은 CSV (UTF-8) 형식이어야 합니다.</p>
+                                            {/* 안내 문구 수정 */}
+                                            <p className="text-sm text-gray-500">CSV, XLS, XLSX 파일</p>
+                                            <p className="text-sm text-red-500">업로드할 파일은 UTF-8 형식이어야 합니다.</p>
                                             {uploadedFile && <p className="text-base text-green-600 pt-2 font-semibold">{uploadedFile.name}</p>}
                                         </div>
-                                        <input id="file-upload" name="file-upload" type="file" className="sr-only" accept=".csv" onChange={handleFileChange} />
+                                        {/* accept 속성 수정 */}
+                                        <input id="file-upload" name="file-upload" type="file" className="sr-only" accept=".csv, .xlsx, .xls" onChange={handleFileChange} />
                                     </label>
                                 </div>
                                 
@@ -483,7 +516,6 @@
                                                 <div id="printable-content" className="printable-area bg-white p-8 border shadow-lg relative">
                                                     <div className="relative text-center mb-2">
                                                         <h2 className="text-2xl font-bold text-gray-800">{displayedContent.title}</h2>
-                                                        {/* 로고 위치 수정: -top-12 -> -top-10 */}
                                                         <div className="absolute -top-10 right-6 w-28 h-28">
                                                             {schoolLogo ? (
                                                                 <img src={schoolLogo} alt="School Logo" className="w-full h-full object-contain" />
@@ -517,4 +549,4 @@
 
     </script>
 </body>
-</html>
+</html>```
