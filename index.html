@@ -274,6 +274,7 @@
                     reader.onload = (ev) => setSchoolLogo(ev.target.result);
                     reader.readAsDataURL(e.target.files[0]);
                 }
+                e.target.value = ''; // Reset input to allow re-selection
             };
 
             const handleFileSelect = (e) => {
@@ -281,6 +282,7 @@
                     setUploadedFile(e.target.files[0]);
                     setError(null);
                 }
+                e.target.value = ''; // Reset input to allow re-selection of the same file
             };
 
             // --- Core Logic: Transform Normalized Data to Result Format ---
@@ -513,6 +515,8 @@
             const handleReset = () => {
                 setStep(1); setUploadedFile(null); setTransformedData(null); setClassData(null);
                 setDisplayView({ type: 'individual', key: 'all' });
+                // Ensure input is cleared on reset as well for safety
+                if (fileInputRef.current) fileInputRef.current.value = '';
             };
 
             const getDisplayContent = () => {
