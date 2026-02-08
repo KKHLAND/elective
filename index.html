@@ -4,14 +4,247 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>선택과목 코드 변환 시스템</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Libraries -->
     <script src="https://unpkg.com/papaparse@5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
     <style>
-        /* 추가적인 글로벌 스타일이 필요하다면 여기에 작성할 수 있습니다. */
+        :root {
+            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            --color-bg-page: #f8fafc;
+            --color-bg-card: #ffffff;
+            --color-text-main: #0f172a;
+            --color-text-muted: #64748b;
+            --color-primary: #4f46e5;
+            --color-border: #e2e8f0;
+            --radius-md: 0.75rem;
+            --radius-lg: 1rem;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--color-bg-page);
+            color: var(--color-text-main);
+            font-family: 'Noto Sans KR', sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .app-container { display: flex; flex-direction: column; min-height: 100vh; }
+
+        .hero-header {
+            background: linear-gradient(-45deg, #1e1b4b, #312e81, #4c1d95, #581c87);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: white;
+            padding: 3rem 1.5rem 6rem;
+            text-align: center;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .hero-title { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem; }
+        .hero-subtitle { font-size: 1rem; opacity: 0.9; }
+
+        .main-content {
+            width: 95%; max-width: 1600px; margin: -4rem auto 2rem; position: relative; z-index: 10;
+        }
+
+        .card {
+            background: var(--color-bg-card); border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg); padding: 2rem; margin-bottom: 2rem;
+        }
+
+        .config-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;
+        }
+        .form-control {
+            width: 100%; padding: 0.75rem; border: 1px solid var(--color-border);
+            border-radius: var(--radius-md); font-size: 0.95rem;
+        }
+
+        .dropzone-area {
+            border: 2px dashed var(--color-border); border-radius: var(--radius-md);
+            padding: 3rem; text-align: center; cursor: pointer; background: #fafafa;
+            transition: all 0.2s;
+        }
+        .dropzone-area:hover { border-color: var(--color-primary); background: #f5f3ff; }
+
+        .action-bar { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; }
+        .btn {
+            padding: 0.75rem 1.5rem; border-radius: 2rem; border: none; font-weight: 600;
+            cursor: pointer; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 0.5rem;
+        }
+        .btn-primary { background: var(--primary-gradient); color: white; }
+        .btn-secondary { background: white; border: 1px solid var(--color-border); color: var(--color-text-main); }
+        .btn-success { background: #10b981; color: white; } /* Added for CSV button */
+        .btn-success:hover { background: #059669; }
+
+        /* Tab Styles */
+        .result-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            padding: 0.5rem 1.25rem;
+            border-radius: 9999px; /* Pill shape */
+            border: 1px solid var(--color-border);
+            background: white;
+            color: var(--color-text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .tab-btn:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            transform: translateY(-1px);
+        }
+
+        .tab-btn.active {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: transparent;
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        /* Table Styles */
+        .table-wrapper {
+            max-height: 70vh;
+            overflow: auto;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--color-border);
+        }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        .data-table th {
+            background: #eef2ff; /* Pastel Blue Background */
+            padding: 1rem; text-align: center; font-weight: 700;
+            border-bottom: 2px solid var(--color-border); border-right: 1px solid #f1f5f9;
+            position: sticky; top: 0; z-index: 10;
+        }
+        .data-table td {
+            padding: 0.85rem; border-bottom: 1px solid var(--color-border);
+            border-right: 1px solid #f1f5f9; text-align: center;
+        }
+        .data-table tr:hover { background-color: #f8fafc; }
+
+        /* Stepper */
+        .stepper-container { display: flex; justify-content: center; gap: 3rem; margin-bottom: 2rem; position: relative; }
+        .step-item { display: flex; flex-direction: column; align-items: center; z-index: 1; position: relative;}
+        .step-icon {
+            width: 36px; height: 36px; border-radius: 50%; background: #e2e8f0; color: #64748b;
+            display: flex; align-items: center; justify-content: center; font-weight: 700; border: 4px solid white;
+        }
+        .step-item.active .step-icon { background: var(--color-primary); color: white; }
+        .step-item.completed .step-icon { background: #059669; color: white; }
+
+        .error-banner {
+            background: #fef2f2; color: #b91c1c; padding: 1rem; border-radius: var(--radius-md);
+            margin-top: 1rem; display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        /* --- Print Styles Optimized for A4 Landscape --- */
+        @media print {
+            body { background: white; color: black; }
+            .hero-header, .stepper-container, .card, .action-bar, .no-print, .result-header button { display: none !important; }
+            .main-content { width: 100%; max-width: none; margin: 0; padding: 0; }
+            .result-section { box-shadow: none; border-radius: 0; }
+            
+            /* Hide tab buttons in print but keep content */
+            .result-tabs { display: none !important; }
+            
+            /* Reduce margins for maximum space: 5mm margins */
+            @page { size: A4 landscape; margin: 5mm; }
+            
+            /* Table Optimization */
+            .table-wrapper { max-height: none; overflow: visible; border: none; }
+            .data-table { font-size: 9pt; width: 100%; border-collapse: collapse !important; }
+            
+            /* Compact Rows & Single Line Enforcement */
+            .data-table th, .data-table td { 
+                border: 1px solid black !important; /* Uniform Solid Black Border */
+                padding: 3px 4px !important; /* Slightly increased padding as requested */
+                height: auto !important;
+                line-height: 1.2 !important; /* Slightly increased line-height as requested */
+                white-space: nowrap !important; /* FORCE SINGLE LINE */
+            }
+            .data-table th { 
+                background-color: #eef2ff !important; 
+                color: black !important; 
+                -webkit-print-color-adjust: exact;
+                position: static !important; /* CRITICAL FIX: Disable sticky for print to fix missing borders */
+            }
+            
+            /* Header for Print (Revised Layout) */
+            .print-header-container {
+                display: flex !important;
+                justify-content: center;
+                align-items: flex-end; /* Align title and logo at bottom */
+                position: relative;
+                width: 100%;
+                margin-bottom: 5px; /* Gap */
+                padding-bottom: 5px;
+                border-bottom: 2px solid black;
+                min-height: 70px; /* Increased height to give space between title and table */
+            }
+            .print-title {
+                text-align: center;
+                font-size: 20pt;
+                font-weight: bold;
+                width: 100%;
+                margin: 0; 
+                margin-bottom: 10px; /* Add space between title and logo/line */
+                z-index: 1;
+            }
+            /* Info row is removed, data moved to footer */
+            .print-info-row { display: none !important; }
+            
+            .print-logo {
+                position: absolute;
+                right: 0;
+                bottom: -25px; /* Moved down further as requested */
+                width: 110px; /* Kept large size */
+                height: 110px;
+                object-fit: contain;
+                z-index: 2;
+            }
+
+            /* Footer for Print (Date) */
+            .print-footer {
+                display: block !important;
+                text-align: right;
+                font-size: 10pt;
+                margin-top: 4px;
+                color: black;
+            }
+        }
+        .print-header-container { display: none; }
+        .print-footer { display: none; }
     </style>
 </head>
 <body>
@@ -20,15 +253,9 @@
     <script type="text/babel">
         const { useState, useCallback, useRef, StrictMode } = React;
 
-        const SchoolLogo = ({ className }) => (
-            <svg className={`w-full h-full ${className || 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v11.494m-9-5.747h18M12 6.253l-4.5 2.25M12 6.253l4.5 2.25m-8.5 4.5l4.5-2.25m0 0l4.5 2.25m-4.5-2.25V3.753m-4.5 2.25l4.5 2.25m0 0l4.5 2.25m0 0v11.25m-4.5-2.25v-2.25m0 0l-4.5-2.25m4.5 2.25l4.5-2.25" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H20.945C21.53 11 22 11.47 22 12v1.944c0 .53-.47 1-1.055 1H3.055C2.47 14.944 2 14.474 2 13.944V12c0-.53.47-1 1.055-1z" />
-            </svg>
-        );
-
         const App = () => {
-            const [academicYear, setAcademicYear] = useState("2025");
+            const [step, setStep] = useState(1);
+            const [academicYear, setAcademicYear] = useState("2026");
             const [semester, setSemester] = useState("1학기");
             const [uploadedFile, setUploadedFile] = useState(null);
             const [transformedData, setTransformedData] = useState(null);
@@ -36,517 +263,452 @@
             const [isLoading, setIsLoading] = useState(false);
             const [error, setError] = useState(null);
             const [schoolLogo, setSchoolLogo] = useState(null);
-            const [displayView, setDisplayView] = useState(null);
+            const [displayView, setDisplayView] = useState({ type: 'individual', key: 'all' });
 
             const logoInputRef = useRef(null);
+            const fileInputRef = useRef(null);
 
-            const handleFileChange = (event) => {
-                if (event.target.files && event.target.files.length > 0) {
-                    setUploadedFile(event.target.files[0]);
-                    setTransformedData(null);
-                    setClassData(null);
-                    setError(null);
-                    setDisplayView(null);
-                }
-            };
-
-            const handleLogoChange = (event) => {
-                if (event.target.files && event.target.files[0]) {
+            const handleLogoChange = (e) => {
+                if (e.target.files && e.target.files[0]) {
                     const reader = new FileReader();
-                    reader.onload = (e) => {
-                        if (e.target && typeof e.target.result === 'string') {
-                            setSchoolLogo(e.target.result);
-                        }
-                    };
-                    reader.readAsDataURL(event.target.files[0]);
+                    reader.onload = (ev) => setSchoolLogo(ev.target.result);
+                    reader.readAsDataURL(e.target.files[0]);
                 }
             };
-            
-            const handleLogoUploadClick = () => {
-                logoInputRef.current?.click();
+
+            const handleFileSelect = (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    setUploadedFile(e.target.files[0]);
+                    setError(null);
+                }
             };
 
+            // --- Core Logic: Transform Normalized Data to Result Format ---
             const transformData = useCallback((data) => {
                 const baseColumns = ['순번', '학번', '이름'];
-                const subjectColumns = Object.keys(data[0]).filter(col => !baseColumns.includes(col));
                 
-                const longFormatData = [];
-                data.forEach(student => {
-                    const studentId = student['학번'] ? String(student['학번']) : '';
-                    subjectColumns.forEach(subject => {
-                        let code = student[subject];
-                        let subjectName = subject;
+                if (!data || data.length === 0) return [];
+                const sampleRow = data[0];
+                const headers = Object.keys(sampleRow);
+                
+                const targetColumns = headers.filter(col => !baseColumns.includes(col));
+                
+                const codeHeaderPattern = /^([A-Ja-j]|Ca|Cb)$/; 
+                const codeFormatMatches = targetColumns.filter(col => codeHeaderPattern.test(col.trim())).length;
+                const isCodeAsHeader = codeFormatMatches > (targetColumns.length / 2);
 
-                        if (code && String(code).trim() !== '') {
-                            // 2025학년도 2학년 일본어I 'Ca', 'Cb'를 'C'코드로 처리하고 과목명 변경
+                const pivotedDataMap = new Map();
+                
+                data.forEach(student => {
+                    const studentId = student['학번'] ? String(student['학번']).trim() : '';
+                    if (!studentId) return; 
+                    
+                    if (!pivotedDataMap.has(studentId)) {
+                        pivotedDataMap.set(studentId, {
+                            '순번': student['순번'],
+                            '학번': studentId,
+                            '이름': student['이름'] || '',
+                        });
+                    }
+                    const record = pivotedDataMap.get(studentId);
+
+                    targetColumns.forEach(col => {
+                        const cellValue = student[col];
+                        if (!cellValue || String(cellValue).trim() === '') return;
+
+                        let code, subjectName;
+                        const cellStr = String(cellValue).trim();
+
+                        if (isCodeAsHeader) {
+                            code = col.trim().toUpperCase(); 
+                            subjectName = cellStr;
+                        } else {
+                            subjectName = col;
+                            code = cellStr.toUpperCase(); 
+                            
                             if (
                                 academicYear === '2025' &&
                                 studentId?.startsWith('2') &&
-                                (code === 'Ca' || code === 'Cb') &&
-                                subject.includes('일본어')
+                                (cellStr === 'Ca' || cellStr === 'Cb') &&
+                                subjectName.includes('일본어')
                             ) {
-                                subjectName = `${subject}(${code})`;
+                                subjectName = `${subjectName}(${cellStr})`;
                                 code = 'C';
                             }
+                        }
 
-                            longFormatData.push({
-                                '순번': student['순번'],
-                                '학번': studentId,
-                                '이름': student['이름'],
-                                '과목명': subjectName,
-                                '코드': code
-                            });
+                        if (code && subjectName) {
+                            if (record[code]) {
+                                if (!record[code].includes(subjectName)) {
+                                    record[code] = `${record[code]}, ${subjectName}`;
+                                }
+                            } else {
+                                record[code] = subjectName;
+                            }
                         }
                     });
                 });
                 
-                const pivotedDataMap = new Map();
-                longFormatData.forEach(row => {
-                    const studentId = row['학번'];
-                    if (!pivotedDataMap.has(studentId)) {
-                        pivotedDataMap.set(studentId, {
-                            '순번': row['순번'],
-                            '학번': row['학번'],
-                            '이름': row['이름'],
-                        });
-                    }
-                    const studentRecord = pivotedDataMap.get(studentId);
-                    if(studentRecord) {
-                        studentRecord[row['코드']] = row['과목명'];
-                    }
+                return Array.from(pivotedDataMap.values()).sort((a, b) => {
+                    return parseInt(a['학번'], 10) - parseInt(b['학번'], 10);
                 });
-
-                const sortedData = Array.from(pivotedDataMap.values()).sort((a, b) => {
-                    const studentIdA = parseInt(a['학번'], 10);
-                    const studentIdB = parseInt(b['학번'], 10);
-                    return studentIdA - studentIdB;
-                });
-                return sortedData;
             }, [academicYear]);
 
             const groupDataByClass = (data) => {
                 const grouped = new Map();
                 data.forEach(row => {
                     const studentId = row['학번'] ? String(row['학번']) : '';
-                    if (studentId && studentId.length >= 3) {
-                        const classPrefix = studentId.substring(0, 3); // e.g., '301', '201'
+                    if (studentId.length >= 3) {
+                        const classPrefix = studentId.substring(0, 3);
                         const grade = classPrefix[0];
                         const classNum = parseInt(classPrefix.substring(1), 10);
-                        const className = `${grade}-${classNum}`; // e.g., '3-1', '2-1'
+                        const className = `${grade}-${classNum}`;
                         
-                        if (!grouped.has(className)) {
-                            grouped.set(className, []);
-                        }
+                        if (!grouped.has(className)) grouped.set(className, []);
                         grouped.get(className)?.push(row);
                     }
                 });
                 return new Map([...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true })));
             };
 
-            const handleTransformClick = useCallback(() => {
+            const findHeaderRowIndex = (rows) => {
+                for (let i = 0; i < Math.min(rows.length, 15); i++) {
+                    const row = rows[i];
+                    if (!row) continue;
+                    
+                    const values = Array.isArray(row) ? row : Object.values(row);
+                    const strValues = values.map(v => String(v || '').trim());
+                    if (strValues.includes('학번') && strValues.includes('이름')) {
+                        return i;
+                    }
+                }
+                return 0;
+            };
+
+            const handleProcess = useCallback(() => {
                 if (!uploadedFile) {
-                    setError("파일이 선택되지 않았습니다.");
+                    setError("파일을 선택해주세요.");
                     return;
                 }
-
                 setIsLoading(true);
                 setError(null);
-                setTransformedData(null);
-                setClassData(null);
-                setDisplayView(null);
 
-                // 파싱 후 공통으로 실행될 데이터 처리 함수
-                const processData = (parsedData) => {
+                const processJsonData = (rawData) => {
                     try {
-                        if (!parsedData || parsedData.length === 0) {
-                            throw new Error("파일이 비어있거나 데이터가 없습니다.");
-                        }
-                        const requiredCols = ['순번', '학번', '이름'];
-                        const firstRow = parsedData[0];
-                        if (!requiredCols.every(col => col in firstRow)) {
-                            throw new Error(`파일에 필수 컬럼(${requiredCols.join(', ')})이 없습니다.`);
+                        if (!rawData || rawData.length === 0) throw new Error("데이터가 없습니다.");
+                        
+                        const cleanedData = rawData.map(row => {
+                            const newRow = {};
+                            Object.keys(row).forEach(key => {
+                                const cleanKey = key.trim(); 
+                                if (cleanKey) newRow[cleanKey] = row[key];
+                            });
+                            return newRow;
+                        });
+
+                        const sampleKeys = Object.keys(cleanedData[0] || {});
+                        if (!sampleKeys.includes('학번') || !sampleKeys.includes('이름')) {
+                            throw new Error("필수 컬럼(학번, 이름)을 찾을 수 없습니다. 파일의 헤더를 확인해주세요.");
                         }
 
-                        const transformed = transformData(parsedData);
+                        const transformed = transformData(cleanedData);
                         setTransformedData(transformed);
-                        
-                        const groupedByClass = groupDataByClass(transformed);
-                        setClassData(groupedByClass);
-                        setDisplayView({ type: 'individual', key: 'all' });
+                        setClassData(groupDataByClass(transformed));
+                        setStep(2); 
                     } catch (e) {
-                        setError(`변환 중 오류 발생: ${e.message}`);
+                        setError(`데이터 처리 오류: ${e.message}`);
                     } finally {
                         setIsLoading(false);
                     }
                 };
-                
-                const fileExtension = uploadedFile.name.split('.').pop().toLowerCase();
-                const reader = new FileReader();
 
-                if (fileExtension === 'csv') {
-                    reader.onload = (event) => {
-                        Papa.parse(event.target.result, {
-                            header: true,
+                const reader = new FileReader();
+                const ext = uploadedFile.name.split('.').pop().toLowerCase();
+
+                if (ext === 'csv') {
+                    reader.onload = (e) => {
+                        Papa.parse(e.target.result, {
+                            header: false,
                             skipEmptyLines: true,
                             encoding: 'utf-8-sig',
-                            complete: (results) => {
-                                processData(results.data);
+                            complete: (res) => {
+                                const hIdx = findHeaderRowIndex(res.data);
+                                const headers = res.data[hIdx]?.map(h => String(h).trim());
+                                
+                                if (headers && headers.includes('학번') && headers.includes('이름')) {
+                                    const jsonData = res.data.slice(hIdx + 1).map(row => {
+                                        const obj = {};
+                                        headers.forEach((h, idx) => { if(h) obj[h] = row[idx]; });
+                                        return obj;
+                                    });
+                                    processJsonData(jsonData);
+                                } else {
+                                    const reader2 = new FileReader();
+                                    reader2.onload = (e2) => {
+                                        Papa.parse(e2.target.result, {
+                                            header: false,
+                                            skipEmptyLines: true,
+                                            encoding: 'EUC-KR',
+                                            complete: (res2) => {
+                                                const hIdx2 = findHeaderRowIndex(res2.data);
+                                                const headers2 = res2.data[hIdx2]?.map(h => String(h).trim());
+                                                if (headers2 && headers2.includes('학번')) {
+                                                    const jsonData2 = res2.data.slice(hIdx2 + 1).map(row => {
+                                                        const obj = {};
+                                                        headers2.forEach((h, idx) => { if(h) obj[h] = row[idx]; });
+                                                        return obj;
+                                                    });
+                                                    processJsonData(jsonData2);
+                                                } else {
+                                                    setError("CSV 인코딩을 인식할 수 없습니다. (UTF-8 또는 EUC-KR)");
+                                                    setIsLoading(false);
+                                                }
+                                            }
+                                        });
+                                    };
+                                    reader2.readAsText(uploadedFile, 'EUC-KR');
+                                }
                             },
-                            error: (err) => {
-                                setError(`CSV 파싱 오류: ${err.message}`);
-                                setIsLoading(false);
-                            }
+                            error: (err) => { setError(err.message); setIsLoading(false); }
                         });
                     };
                     reader.readAsText(uploadedFile);
-                } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
-                    reader.onload = (event) => {
+                } else if (['xlsx', 'xls'].includes(ext)) {
+                    reader.onload = (e) => {
                         try {
-                            const data = new Uint8Array(event.target.result);
-                            const workbook = XLSX.read(data, { type: 'array' });
-                            const sheetName = workbook.SheetNames[0];
-                            const worksheet = workbook.Sheets[sheetName];
-                            const jsonData = XLSX.utils.sheet_to_json(worksheet);
-                            processData(jsonData);
-                        } catch (e) {
-                            setError(`Excel 파일 처리 오류: ${e.message}`);
+                            const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                            const rawRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+                            const hIdx = findHeaderRowIndex(rawRows);
+                            const headers = rawRows[hIdx]?.map(h => String(h || '').trim());
+                            
+                            if (!headers || !headers.includes('학번')) {
+                                throw new Error("엑셀 파일에서 '학번' 헤더를 찾을 수 없습니다.");
+                            }
+
+                            const jsonData = rawRows.slice(hIdx + 1).map(row => {
+                                const obj = {};
+                                headers.forEach((h, idx) => {
+                                    if(h) {
+                                        const val = row[idx] !== undefined ? row[idx] : '';
+                                        obj[h] = val;
+                                    }
+                                });
+                                return obj;
+                            });
+                            
+                            processJsonData(jsonData);
+                        } catch (err) {
+                            setError(`엑셀 파싱 오류: ${err.message}`);
                             setIsLoading(false);
                         }
                     };
                     reader.readAsArrayBuffer(uploadedFile);
                 } else {
-                    setError("지원하지 않는 파일 형식입니다. CSV 또는 Excel 파일을 업로드하세요.");
+                    setError("지원하지 않는 파일 형식입니다.");
                     setIsLoading(false);
                 }
             }, [uploadedFile, transformData]);
 
-            const handlePrint = () => {
-                const printableContent = document.getElementById('printable-content');
-                if (!printableContent) return;
-            
-                const printWindow = window.open('', '_blank', 'height=800,width=1200');
-                if (printWindow) {
-                    printWindow.document.write('<!DOCTYPE html><html><head><title>인쇄</title>');
-                    printWindow.document.write('<script src="https://cdn.tailwindcss.com"><\/script>');
-                    printWindow.document.write(`
-                        <style>
-                            @page { 
-                                size: A4 landscape; 
-                                margin: 1cm; 
-                            }
-                            @media print {
-                                html, body {
-                                    margin: 0;
-                                    padding: 0;
-                                }
-                                body {
-                                    font-family: sans-serif;
-                                    -webkit-print-color-adjust: exact;
-                                    color-adjust: exact;
-                                    width: 100%;
-                                }
-                                table {
-                                    width: 100% !important;
-                                }
-                                th, td {
-                                   padding-top: 1px !important;
-                                   padding-bottom: 1px !important;
-                                }
-                                .print-bg-blue-100 {
-                                    background-color: #DBEAFE !important;
-                                }
-                                .overflow-x-auto {
-                                    overflow: visible !important;
-                                }
-                            }
-                        </style>
-                    `);
-                    printWindow.document.write('</head><body>');
-                    printWindow.document.write(printableContent.innerHTML);
-                    printWindow.document.write('</body></html>');
-                    printWindow.document.close();
-                    
-                    printWindow.onload = () => {
-                        setTimeout(() => {
-                            printWindow.focus();
-                            printWindow.print();
-                            printWindow.close();
-                        }, 500); 
-                    };
-                } else {
-                    alert('팝업이 차단되었습니다. 인쇄 기능을 사용하려면 팝업을 허용해주세요.');
-                }
+            const handleReset = () => {
+                setStep(1); setUploadedFile(null); setTransformedData(null); setClassData(null);
+                setDisplayView({ type: 'individual', key: 'all' });
             };
-            
-            const ResultsTable = ({data, columns}) => (
-                <table className="min-w-full divide-y divide-gray-200 border print-table">
-                    <thead className="bg-blue-100 print-bg-blue-100">
-                        <tr>
-                            {columns.map(col => (
-                                <th key={col} scope="col" className="px-2 py-0.5 text-center align-middle text-sm font-bold text-gray-700 uppercase tracking-wider border-l whitespace-nowrap">
-                                    {col}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {data.map((row, index) => (
-                            <tr key={index}>
-                                {columns.map(col => (
-                                    <td key={col} className="px-2 py-0.5 whitespace-nowrap text-center align-middle text-sm text-gray-700 border-l">
-                                        {row[col] || ''}
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            );
 
-            const getDisplayData = () => {
-                if (!displayView) return null;
-
-                if (displayView.type === 'individual' && transformedData) {
-                    const inferredGrade = transformedData[0]?.['학번']?.[0];
-                    const title = inferredGrade 
-                        ? `${academicYear}학년도 ${semester} ${inferredGrade}학년 선택과목 현황 (전체)`
-                        : `${academicYear}학년도 ${semester} 선택과목 현황 (전체)`;
-                    return { title, data: transformedData };
+            const getDisplayContent = () => {
+                if (!transformedData) return null;
+                if (displayView.type === 'individual') {
+                    const grade = transformedData[0]?.['학번']?.[0] || '1'; 
+                    return { 
+                        title: `${academicYear}학년도 ${semester} 선택과목 현황 (전체)`, 
+                        data: transformedData, grade 
+                    };
                 }
-                
                 if (displayView.type === 'class' && classData) {
-                    const data = classData.get(displayView.key);
-                    const inferredGrade = displayView.key[0];
-                    if (data) {
-                        return {
-                            title: `${academicYear}학년도 ${semester} ${inferredGrade}학년 ${displayView.key}반 선택과목 현황`,
-                            data: data,
-                        };
-                    }
+                    const data = classData.get(displayView.key) || [];
+                    const grade = displayView.key[0];
+                    return { 
+                        title: `${academicYear}학년도 ${semester} ${displayView.key}반 선택과목 현황`, 
+                        data, grade 
+                    };
                 }
                 return null;
-            }
-            
-            const displayedContent = getDisplayData();
-            
-            const baseOutputColumns = ['학번', '이름'];
-            const subjectColumnsGrade2 = ['A', 'B', 'C', 'D', 'E'];
-            const subjectColumnsGrade3 = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+            };
 
-            let displayedColumns = [...baseOutputColumns, ...subjectColumnsGrade3]; 
+            const displayedContent = getDisplayContent();
 
-            if (displayedContent && displayedContent.data.length > 0) {
-                let grade = '3'; 
+            const getColumns = () => {
+                if (!displayedContent) return [];
+                const base = ['학번', '이름'];
+                const grade2Codes = ['A', 'B', 'C', 'D', 'E'];
+                const grade3Codes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
                 
-                if (displayView?.type === 'class') {
-                    grade = displayView.key[0];
-                } else if (displayView?.type === 'individual') {
-                    const firstStudentId = displayedContent.data[0]?.['학번'];
-                    const firstStudentGrade = firstStudentId ? String(firstStudentId)[0] : null;
+                if (displayedContent.grade === '2') return [...base, ...grade2Codes];
+                if (displayedContent.grade === '3') return [...base, ...grade3Codes];
 
-                    if (firstStudentGrade === '2' || firstStudentGrade === '3') {
-                        grade = firstStudentGrade;
-                    }
-                }
+                const extended = ['F', 'G', 'H', 'I', 'J'];
+                const hasExtended = displayedContent.data.some(row => extended.some(c => row[c]));
+                return hasExtended ? [...base, ...grade3Codes] : [...base, ...grade2Codes];
+            };
+            const columns = getColumns();
 
-                if (grade === '2') {
-                    displayedColumns = [...baseOutputColumns, ...subjectColumnsGrade2];
-                }
-            }
+            // --- CSV Download Handler ---
+            const handleDownloadCSV = () => {
+                if (!displayedContent) return;
 
+                const { title, data } = displayedContent;
+                // Use the calculated columns for order
+                const csvColumns = columns;
+                
+                // Map data to ensure correct column order
+                const csvData = data.map(row => {
+                    const rowData = {};
+                    csvColumns.forEach(col => {
+                        rowData[col] = row[col] || '';
+                    });
+                    return rowData;
+                });
+
+                // Generate CSV with BOM for Korean support
+                const csv = Papa.unparse({
+                    fields: csvColumns,
+                    data: csvData
+                });
+                const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `${title}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
 
             return (
-                <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4 sm:p-6 lg:p-8">
-                    <div className="w-full max-w-7xl mx-auto">
-                        <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
-                            <header className="flex justify-between items-center p-6 sm:p-8 bg-gradient-to-r from-blue-600 to-indigo-700">
-                                <div className="flex-1">
-                                    <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-                                        선택과목 코드 변환 시스템
-                                    </h1>
-                                </div>
-                                <div className="flex-shrink-0 w-16 h-16">
-                                   <SchoolLogo className="text-white"/>
-                                </div>
-                            </header>
-                            
-                            <div className="p-8 space-y-8">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                       <label htmlFor="academicYear" className="block text-base font-medium text-gray-700">학년도</label>
-                                       <input
-                                           type="number"
-                                           id="academicYear"
-                                           value={academicYear}
-                                           onChange={(e) => setAcademicYear(e.target.value)}
-                                           className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-base"
-                                       />
-                                    </div>
-                                    <div>
-                                       <label htmlFor="semester" className="block text-base font-medium text-gray-700">학기</label>
-                                       <select
-                                           id="semester"
-                                           value={semester}
-                                           onChange={(e) => setSemester(e.target.value)}
-                                           className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md"
-                                       >
-                                           <option>1학기</option>
-                                           <option>2학기</option>
-                                       </select>
-                                    </div>
-                                </div>
+                <div className="app-container">
+                    <header className="hero-header no-print">
+                        <h1 className="hero-title">선택과목 코드 변환 시스템</h1>
+                        <p className="hero-subtitle">나이스 업로드용 파일 자동 변환 (CSV / Excel)</p>
+                    </header>
 
-                                <div className="flex justify-end">
-                                     <input
-                                        type="file"
-                                        ref={logoInputRef}
-                                        onChange={handleLogoChange}
-                                        className="sr-only"
-                                        accept="image/*"
-                                        id="logo-upload"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleLogoUploadClick}
-                                        className="px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                                    >
-                                        로고 업로드
-                                    </button>
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-base font-medium text-gray-700 mb-2">
-                                        선택과목 파일을 업로드하세요.
-                                    </label>
-                                    <label htmlFor="file-upload" className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-blue-500 transition-colors">
-                                        <div className="space-y-1 text-center">
-                                            <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                                            </svg>
-                                            <div className="flex justify-center text-base text-gray-600">
-                                                <p className="font-medium text-blue-600 hover:text-blue-500">
-                                                    파일 선택
-                                                </p>
-                                                <p className="pl-1">또는 드래그 앤 드롭</p>
-                                            </div>
-                                            {/* 안내 문구 수정 */}
-                                            <p className="text-sm text-gray-500">CSV, XLS, XLSX 파일</p>
-                                            <p className="text-sm text-red-500">업로드할 파일은 UTF-8 형식이어야 합니다.</p>
-                                            {uploadedFile && <p className="text-base text-green-600 pt-2 font-semibold">{uploadedFile.name}</p>}
-                                        </div>
-                                        {/* accept 속성 수정 */}
-                                        <input id="file-upload" name="file-upload" type="file" className="sr-only" accept=".csv, .xlsx, .xls" onChange={handleFileChange} />
-                                    </label>
-                                </div>
-                                
-                                {uploadedFile && (
-                                    <div className="text-center">
-                                        <button
-                                            onClick={handleTransformClick}
-                                            disabled={isLoading}
-                                            className="w-full sm:w-auto inline-flex justify-center py-3 px-6 border border-transparent shadow-sm text-lg font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                        >
-                                            {isLoading ? '변환 중...' : '변환 시작'}
-                                        </button>
-                                    </div>
-                                )}
-                                
-                                {error && (
-                                    <div className="bg-red-50 border-l-4 border-red-400 p-4">
-                                         <div className="flex">
-                                            <div className="flex-shrink-0">
-                                                 <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                                 </svg>
-                                            </div>
-                                            <div className="ml-3">
-                                                 <p className="text-base text-red-700">{error}</p>
-                                            </div>
-                                         </div>
-                                    </div>
-                                )}
-
-                                {transformedData && classData && (
-                                    <div>
-                                        <div className="bg-green-50 border-l-4 border-green-400 p-4 space-y-4">
-                                             <div className="flex">
-                                                <div className="flex-shrink-0">
-                                                     <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                     </svg>
-                                                </div>
-                                                <div className="ml-3">
-                                                     <p className="text-base font-medium text-green-800">✅ 변환이 완료되었습니다. 아래에서 확인할 결과를 선택하세요.</p>
-                                                </div>
-                                             </div>
-                                        </div>
-                                        
-                                        <div className="mt-6 p-4 border rounded-lg">
-                                            <div className="flex justify-between items-center mb-4">
-                                                <p className="text-lg font-semibold text-gray-800">결과 보기</p>
-                                                <button
-                                                    onClick={handlePrint}
-                                                    disabled={!displayedContent}
-                                                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400"
-                                                >
-                                                    인쇄하기
-                                                </button>
-                                            </div>
-                                            <div className="flex flex-wrap gap-3">
-                                                <button 
-                                                    onClick={() => setDisplayView({ type: 'individual', key: 'all'})}
-                                                    className={`px-4 py-2 text-base font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${displayView?.type === 'individual' ? 'bg-green-600 text-white focus:ring-green-500' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 focus:ring-blue-500'}`}
-                                                >
-                                                    전체
-                                                </button>
-                                                {Array.from(classData.keys()).map(className => (
-                                                    <button 
-                                                        key={className}
-                                                        onClick={() => setDisplayView({ type: 'class', key: className})}
-                                                        className={`px-4 py-2 text-base font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${displayView?.type === 'class' && displayView?.key === className ? 'bg-green-600 text-white focus:ring-green-500' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 focus:ring-blue-500'}`}
-                                                    >
-                                                        {className}반
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        
-                                        {displayedContent && (
-                                            <div className="mt-8">
-                                                <div id="printable-content" className="printable-area bg-white p-8 border shadow-lg relative">
-                                                    <div className="relative text-center mb-2">
-                                                        <h2 className="text-2xl font-bold text-gray-800">{displayedContent.title}</h2>
-                                                        <div className="absolute -top-10 right-6 w-28 h-28">
-                                                            {schoolLogo ? (
-                                                                <img src={schoolLogo} alt="School Logo" className="w-full h-full object-contain" />
-                                                            ) : (
-                                                                <SchoolLogo className="text-gray-400"/>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="overflow-x-auto">
-                                                        <ResultsTable data={displayedContent.data} columns={displayedColumns} />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                    <main className="main-content">
+                        {/* Stepper */}
+                        <div className="stepper-container no-print">
+                            <div className={`step-item ${step >= 1 ? 'active' : ''} ${step > 1 ? 'completed' : ''}`}>
+                                <div className="step-icon">{step > 1 ? <i className="ph ph-check"></i> : "1"}</div>
+                                <span className="step-label mt-2">파일 업로드</span>
+                            </div>
+                            <div className="absolute top-4 w-40 border-t-2 border-gray-200 z-0"></div>
+                            <div className={`step-item ${step >= 2 ? 'active' : ''}`}>
+                                <div className="step-icon">2</div>
+                                <span className="step-label mt-2">결과 확인</span>
                             </div>
                         </div>
-                    </div>
+
+                        {step === 1 && (
+                            <div className="card">
+                                <div className="config-grid">
+                                    <div className="form-group">
+                                        <label>학년도</label>
+                                        <input type="number" className="form-control" value={academicYear} onChange={(e) => setAcademicYear(e.target.value)} />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>학기</label>
+                                        <select className="form-control" value={semester} onChange={(e) => setSemester(e.target.value)}>
+                                            <option>1학기</option><option>2학기</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>학교 로고</label>
+                                        <div className="flex gap-2">
+                                            <button className="btn btn-secondary w-full justify-center" onClick={() => logoInputRef.current?.click()}>
+                                                <i className="ph ph-image"></i> {schoolLogo ? "변경" : "등록"}
+                                            </button>
+                                            <input type="file" ref={logoInputRef} onChange={handleLogoChange} className="hidden" accept="image/*" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="dropzone-area" onClick={() => fileInputRef.current?.click()}>
+                                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept=".csv, .xlsx, .xls" />
+                                    <i className={`ph ${uploadedFile ? 'ph-file-csv text-green-600' : 'ph-upload-simple text-gray-400'} text-5xl mb-2`}></i>
+                                    <div className="font-bold text-lg text-gray-700">{uploadedFile ? uploadedFile.name : "파일 선택"}</div>
+                                    <div className="text-sm text-gray-500 mt-1">{uploadedFile ? "파일이 준비되었습니다." : "클릭하거나 파일을 드래그하세요"}</div>
+                                </div>
+
+                                {error && (
+                                    <div className="error-banner">
+                                        <i className="ph ph-warning-circle text-xl"></i> <span>{error}</span>
+                                    </div>
+                                )}
+
+                                <div className="action-bar">
+                                    <button className="btn btn-primary" onClick={handleProcess} disabled={!uploadedFile || isLoading}>
+                                        {isLoading ? <><i className="ph ph-spinner animate-spin"></i> 처리 중...</> : <><i className="ph ph-magic-wand"></i> 변환 시작</>}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 2 && displayedContent && (
+                            <div className="result-section">
+                                <div className="result-header no-print">
+                                    <div className="flex items-center gap-4 flex-1">
+                                        <h2 className="result-title">변환 결과</h2>
+                                        <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-medium">총 {displayedContent.data.length}명</span>
+                                    </div>
+                                    <div className="flex gap-2 items-center flex-wrap">
+                                        {classData && (
+                                            <div className="result-tabs">
+                                                <button className={`tab-btn ${displayView.type === 'individual' ? 'active' : ''}`} onClick={() => setDisplayView({ type: 'individual', key: 'all'})}>전체</button>
+                                                {Array.from(classData.keys()).map(cls => (
+                                                    <button key={cls} className={`tab-btn ${displayView.type === 'class' && displayView.key === cls ? 'active' : ''}`} onClick={() => setDisplayView({ type: 'class', key: cls})}>{cls}반</button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <div className="w-px h-8 bg-gray-200 mx-2 hidden md:block"></div>
+                                        <button className="btn btn-secondary" onClick={handleReset}><i className="ph ph-arrow-counter-clockwise"></i> 처음으로</button>
+                                        <button className="btn btn-success" onClick={handleDownloadCSV}><i className="ph ph-file-csv"></i> 엑셀 다운로드</button>
+                                        <button className="btn btn-primary" onClick={() => window.print()}><i className="ph ph-printer"></i> 인쇄</button>
+                                    </div>
+                                </div>
+
+                                {/* Print Header */}
+                                <div className="print-header-container">
+                                    <h1 className="print-title">{displayedContent.title}</h1>
+                                    {schoolLogo && <img src={schoolLogo} alt="Logo" className="print-logo" />}
+                                </div>
+
+                                <div className="table-wrapper">
+                                    <table className="data-table">
+                                        <thead>
+                                            <tr>
+                                                {columns.map(col => <th key={col}>{col}</th>)}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {displayedContent.data.map((row, idx) => (
+                                                <tr key={idx}>
+                                                    {columns.map(col => <td key={col}>{row[col] || ''}</td>)}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Print Footer (Date) */}
+                                <div className="print-footer">
+                                    출력일: {new Date().toLocaleDateString()}
+                                </div>
+                            </div>
+                        )}
+                    </main>
                 </div>
             );
         };
 
-        const rootElement = document.getElementById('root');
-        const root = ReactDOM.createRoot(rootElement);
-        root.render(
-          <StrictMode>
-            <App />
-          </StrictMode>
-        );
-
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<StrictMode><App /></StrictMode>);
     </script>
 </body>
-</html>```
+</html>
