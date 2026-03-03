@@ -20,6 +20,9 @@
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
+    <!-- Tailwind CSS (for quick utility classes) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
@@ -97,10 +100,12 @@
         .btn {
             padding: 0.75rem 1.5rem; border-radius: 2rem; border: none; font-weight: 600;
             cursor: pointer; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 0.5rem;
+            transition: all 0.2s;
         }
         .btn-primary { background: var(--primary-gradient); color: white; }
+        .btn-primary:hover { opacity: 0.9; }
         .btn-secondary { background: white; border: 1px solid var(--color-border); color: var(--color-text-main); }
-        .btn-success { background: #10b981; color: white; } /* Added for CSV button */
+        .btn-success { background: #10b981; color: white; }
         .btn-success:hover { background: #059669; }
 
         /* Tab Styles */
@@ -147,7 +152,7 @@
         }
         .data-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
         .data-table th {
-            background: #eef2ff; /* Pastel Blue Background */
+            background: #eef2ff;
             padding: 1rem; text-align: center; font-weight: 700;
             border-bottom: 2px solid var(--color-border); border-right: 1px solid #f1f5f9;
             position: sticky; top: 0; z-index: 10;
@@ -173,80 +178,71 @@
             margin-top: 1rem; display: flex; align-items: center; gap: 0.5rem;
         }
 
+        /* --- Seat Map Styles (Card/Desk Layout) --- */
+        .seat-wrapper { width: 100%; max-width: 1200px; margin: 1rem auto 0; padding: 1rem; background: white; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); page-break-inside: avoid; }
+        .chalkboard { width: 40%; max-width: 300px; height: 36px; margin: 0 auto 2.5rem; background: #94a3b8; border: 3px solid #64748b; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #1e293b; letter-spacing: 0.2em; font-size: 1.1rem; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+        .seat-table { width: 100%; border-collapse: separate; border-spacing: 12px; table-layout: fixed; border: none; }
+        .seat-table td { position: relative; height: 100px; vertical-align: top; padding: 10px; border: none; }
+        .filled-seat {
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .filled-seat:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+            border-color: #94a3b8;
+        }
+        .seat-number { position: absolute; top: 8px; left: 10px; font-size: 1.1rem; font-weight: 800; color: #94a3b8; }
+        .seat-student { text-align: center; margin-top: 1.5rem; }
+        .seat-student-name { font-size: 1.4rem; font-weight: 700; color: #0f172a; }
+        .seat-student-id { font-size: 0.9rem; color: #64748b; margin-top: 2px; }
+
         /* --- Print Styles Optimized for A4 Landscape --- */
         @media print {
             body { background: white; color: black; }
-            .hero-header, .stepper-container, .card, .action-bar, .no-print, .result-header button { display: none !important; }
+            .hero-header, .stepper-container, .card, .action-bar, .no-print, .result-header button, .grade-tabs { display: none !important; }
             .main-content { width: 100%; max-width: none; margin: 0; padding: 0; }
             .result-section { box-shadow: none; border-radius: 0; }
             
-            /* Hide tab buttons in print but keep content */
             .result-tabs { display: none !important; }
+            .view-mode-toggles { display: none !important; }
             
-            /* Reduce margins for maximum space: 5mm margins */
             @page { size: A4 landscape; margin: 5mm; }
             
-            /* Table Optimization */
             .table-wrapper { max-height: none; overflow: visible; border: none; }
             .data-table { font-size: 9pt; width: 100%; border-collapse: collapse !important; }
             
-            /* Compact Rows & Single Line Enforcement */
             .data-table th, .data-table td { 
-                border: 1px solid black !important; /* Uniform Solid Black Border */
-                padding: 3px 4px !important; /* Slightly increased padding as requested (3px -> 5px) */
-                height: auto !important;
-                line-height: 1.35 !important; /* Slightly increased line-height as requested (1.2 -> 1.35) */
-                white-space: nowrap !important; /* FORCE SINGLE LINE */
+                border: 1px solid black !important; padding: 3px 4px !important; height: auto !important; line-height: 1.35 !important; white-space: nowrap !important; 
             }
-            .data-table th { 
-                background-color: #eef2ff !important; 
-                color: black !important; 
-                -webkit-print-color-adjust: exact;
-                position: static !important; /* CRITICAL FIX: Disable sticky for print to fix missing borders */
-            }
+            .data-table th { background-color: #eef2ff !important; color: black !important; -webkit-print-color-adjust: exact; position: static !important; }
             
-            /* Header for Print (Revised Layout) */
             .print-header-container {
-                display: flex !important;
-                justify-content: center;
-                align-items: flex-end; /* Align title and logo at bottom */
-                position: relative;
-                width: 100%;
-                margin-bottom: 5px; /* Gap */
-                padding-bottom: 5px;
-                border-bottom: 2px solid black;
-                min-height: 70px; /* Increased height to give space between title and table */
+                display: flex !important; flex-direction: column; justify-content: center; position: relative; width: 100%; margin-bottom: 5px; padding-bottom: 5px; border-bottom: 2px solid black; min-height: 70px; 
             }
-            .print-title {
-                text-align: center;
-                font-size: 20pt;
-                font-weight: bold;
-                width: 100%;
-                margin: 0; 
-                margin-bottom: 10px; /* Add space between title and logo/line */
-                z-index: 1;
-            }
-            /* Info row is removed, data moved to footer */
-            .print-info-row { display: none !important; }
+            .print-title { text-align: center; font-size: 20pt; font-weight: bold; width: 100%; margin: 0; z-index: 1; }
+            .print-subtitle { text-align: center; font-size: 14pt; font-weight: bold; width: 100%; margin-top: 5px; z-index: 1; }
             
-            .print-logo {
-                position: absolute;
-                right: 0;
-                bottom: -25px; /* Moved down further as requested */
-                width: 110px; /* Kept large size */
-                height: 110px;
-                object-fit: contain;
-                z-index: 2;
-            }
+            .print-logo { position: absolute; right: 0; bottom: -25px; width: 110px; height: 110px; object-fit: contain; z-index: 2; }
 
-            /* Footer for Print (Date) */
-            .print-footer {
-                display: block !important;
-                text-align: right;
-                font-size: 10pt;
-                margin-top: 4px;
-                color: black;
+            .print-footer { display: block !important; text-align: right; font-size: 10pt; margin-top: 4px; color: black; }
+
+            /* Seat Map Print Enhancements */
+            .seat-wrapper { box-shadow: none; margin: 0; padding: 0; }
+            .chalkboard { background: #e2e8f0 !important; color: black !important; -webkit-print-color-adjust: exact; border: 2px solid black !important; margin-bottom: 1.5rem; }
+            .seat-table { border-spacing: 12px !important; }
+            .seat-table td { border: none !important; }
+            .filled-seat {
+                border: 2px solid #334155 !important;
+                border-radius: 12px !important;
+                box-shadow: 4px 4px 0px 0px #cbd5e1 !important; /* Hard shadow for clear 3D effect in print */
+                background: white !important;
+                -webkit-print-color-adjust: exact;
             }
+            .seat-number { color: #64748b !important; }
         }
         .print-header-container { display: none; }
         .print-footer { display: none; }
@@ -256,23 +252,45 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useCallback, useRef, StrictMode } = React;
+        const { useState, useCallback, useRef, useEffect, StrictMode } = React;
 
         const App = () => {
             const [step, setStep] = useState(1);
-            const [academicYear, setAcademicYear] = useState("2026");
+            const [academicYear, setAcademicYear] = useState(new Date().getFullYear().toString());
             const [semester, setSemester] = useState("1학기");
-            const [uploadedFile, setUploadedFile] = useState(null);
-            const [transformedData, setTransformedData] = useState(null);
-            const [classData, setClassData] = useState(null);
+            const [uploadedFiles, setUploadedFiles] = useState([]);
+            
+            // 학년별 데이터 관리
+            const [transformedDataByGrade, setTransformedDataByGrade] = useState({});
+            const [classDataByGrade, setClassDataByGrade] = useState({});
+            const [activeGrade, setActiveGrade] = useState('2');
+            
+            // 뷰 상태
+            const [displayView, setDisplayView] = useState({ type: 'individual', key: 'all', viewMode: 'table' });
+            
+            // 선택과목 좌석표 설정 및 랜덤 배치 데이터 상태 관리
+            const [electiveConfig, setElectiveConfig] = useState({ 
+                code: '', 
+                subject: '', 
+                teacher: '', 
+                cols: 6, 
+                generated: false, 
+                randomData: [] 
+            });
+            
             const [isLoading, setIsLoading] = useState(false);
             const [error, setError] = useState(null);
             const [schoolLogo, setSchoolLogo] = useState(null);
-            const [displayView, setDisplayView] = useState({ type: 'individual', key: 'all' });
             const [isDragging, setIsDragging] = useState(false);
 
             const logoInputRef = useRef(null);
             const fileInputRef = useRef(null);
+
+            // 학년 탭 변경 시 뷰 초기화
+            useEffect(() => {
+                setDisplayView({ type: 'individual', key: 'all', viewMode: 'table' });
+                setElectiveConfig({ code: '', subject: '', teacher: '', cols: 6, generated: false, randomData: [] });
+            }, [activeGrade]);
 
             const handleLogoChange = (e) => {
                 if (e.target.files && e.target.files[0]) {
@@ -280,18 +298,17 @@
                     reader.onload = (ev) => setSchoolLogo(ev.target.result);
                     reader.readAsDataURL(e.target.files[0]);
                 }
-                e.target.value = ''; // Reset input to allow re-selection
+                e.target.value = ''; 
             };
 
             const handleFileSelect = (e) => {
                 if (e.target.files && e.target.files.length > 0) {
-                    setUploadedFile(e.target.files[0]);
+                    setUploadedFiles(Array.from(e.target.files));
                     setError(null);
                 }
-                e.target.value = ''; // Reset input to allow re-selection of the same file
+                e.target.value = ''; 
             };
 
-            // --- Drag and Drop Handlers ---
             const onDragOver = useCallback((e) => {
                 e.preventDefault();
                 setIsDragging(true);
@@ -306,20 +323,19 @@
                 e.preventDefault();
                 setIsDragging(false);
                 if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                    setUploadedFile(e.dataTransfer.files[0]);
+                    setUploadedFiles(Array.from(e.dataTransfer.files));
                     setError(null);
                     if (fileInputRef.current) fileInputRef.current.value = "";
                 }
             }, []);
 
-            // --- Core Logic: Transform Normalized Data to Result Format ---
+            // --- 데이터 변환 로직 (원본 유지) ---
             const transformData = useCallback((data) => {
                 const baseColumns = ['순번', '학번', '이름'];
-                
                 if (!data || data.length === 0) return [];
+                
                 const sampleRow = data[0];
                 const headers = Object.keys(sampleRow);
-                
                 const targetColumns = headers.filter(col => !baseColumns.includes(col));
                 
                 const codeHeaderPattern = /^([A-Ja-j]|Ca|Cb)$/; 
@@ -389,10 +405,7 @@
                     const studentId = row['학번'] ? String(row['학번']) : '';
                     if (studentId.length >= 3) {
                         const classPrefix = studentId.substring(0, 3);
-                        const grade = classPrefix[0];
-                        const classNum = parseInt(classPrefix.substring(1), 10);
-                        const className = `${grade}-${classNum}`;
-                        
+                        const className = `${classPrefix[0]}-${parseInt(classPrefix.substring(1), 10)}`;
                         if (!grouped.has(className)) grouped.set(className, []);
                         grouped.get(className)?.push(row);
                     }
@@ -404,164 +417,193 @@
                 for (let i = 0; i < Math.min(rows.length, 15); i++) {
                     const row = rows[i];
                     if (!row) continue;
-                    
                     const values = Array.isArray(row) ? row : Object.values(row);
                     const strValues = values.map(v => String(v || '').trim());
-                    if (strValues.includes('학번') && strValues.includes('이름')) {
-                        return i;
-                    }
+                    if (strValues.includes('학번') && strValues.includes('이름')) return i;
                 }
                 return 0;
             };
 
-            const handleProcess = useCallback(() => {
-                if (!uploadedFile) {
-                    setError("파일을 선택해주세요.");
-                    return;
-                }
-                setIsLoading(true);
-                setError(null);
-
-                const processJsonData = (rawData) => {
-                    try {
-                        if (!rawData || rawData.length === 0) throw new Error("데이터가 없습니다.");
-                        
-                        const cleanedData = rawData.map(row => {
-                            const newRow = {};
-                            Object.keys(row).forEach(key => {
-                                const cleanKey = key.trim(); 
-                                if (cleanKey) newRow[cleanKey] = row[key];
-                            });
-                            return newRow;
-                        });
-
-                        const sampleKeys = Object.keys(cleanedData[0] || {});
-                        if (!sampleKeys.includes('학번') || !sampleKeys.includes('이름')) {
-                            throw new Error("필수 컬럼(학번, 이름)을 찾을 수 없습니다. 파일의 헤더를 확인해주세요.");
-                        }
-
-                        const transformed = transformData(cleanedData);
-                        setTransformedData(transformed);
-                        setClassData(groupDataByClass(transformed));
-                        setStep(2); 
-                    } catch (e) {
-                        setError(`데이터 처리 오류: ${e.message}`);
-                    } finally {
-                        setIsLoading(false);
-                    }
-                };
-
-                const reader = new FileReader();
-                const ext = uploadedFile.name.split('.').pop().toLowerCase();
-
-                if (ext === 'csv') {
-                    reader.onload = (e) => {
-                        Papa.parse(e.target.result, {
-                            header: false,
-                            skipEmptyLines: true,
-                            encoding: 'utf-8-sig',
-                            complete: (res) => {
-                                const hIdx = findHeaderRowIndex(res.data);
-                                const headers = res.data[hIdx]?.map(h => String(h).trim());
-                                
-                                if (headers && headers.includes('학번') && headers.includes('이름')) {
-                                    const jsonData = res.data.slice(hIdx + 1).map(row => {
-                                        const obj = {};
-                                        headers.forEach((h, idx) => { if(h) obj[h] = row[idx]; });
-                                        return obj;
-                                    });
-                                    processJsonData(jsonData);
-                                } else {
-                                    const reader2 = new FileReader();
-                                    reader2.onload = (e2) => {
-                                        Papa.parse(e2.target.result, {
-                                            header: false,
-                                            skipEmptyLines: true,
-                                            encoding: 'EUC-KR',
-                                            complete: (res2) => {
-                                                const hIdx2 = findHeaderRowIndex(res2.data);
-                                                const headers2 = res2.data[hIdx2]?.map(h => String(h).trim());
-                                                if (headers2 && headers2.includes('학번')) {
-                                                    const jsonData2 = res2.data.slice(hIdx2 + 1).map(row => {
-                                                        const obj = {};
-                                                        headers2.forEach((h, idx) => { if(h) obj[h] = row[idx]; });
-                                                        return obj;
-                                                    });
-                                                    processJsonData(jsonData2);
-                                                } else {
-                                                    setError("CSV 인코딩을 인식할 수 없습니다. (UTF-8 또는 EUC-KR)");
-                                                    setIsLoading(false);
+            const parseFile = (file) => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    
+                    if (ext === 'csv') {
+                        reader.onload = (e) => {
+                            Papa.parse(e.target.result, {
+                                header: false, skipEmptyLines: true, encoding: 'utf-8-sig',
+                                complete: (res) => {
+                                    const hIdx = findHeaderRowIndex(res.data);
+                                    const headers = res.data[hIdx]?.map(h => String(h).trim());
+                                    if (headers && headers.includes('학번') && headers.includes('이름')) {
+                                        resolve(res.data.slice(hIdx + 1).map(row => {
+                                            const obj = {}; headers.forEach((h, idx) => { if(h) obj[h] = row[idx]; }); return obj;
+                                        }));
+                                    } else {
+                                        const reader2 = new FileReader();
+                                        reader2.onload = (e2) => {
+                                            Papa.parse(e2.target.result, {
+                                                header: false, skipEmptyLines: true, encoding: 'EUC-KR',
+                                                complete: (res2) => {
+                                                    const hIdx2 = findHeaderRowIndex(res2.data);
+                                                    const headers2 = res2.data[hIdx2]?.map(h => String(h).trim());
+                                                    if (headers2 && headers2.includes('학번')) {
+                                                        resolve(res2.data.slice(hIdx2 + 1).map(row => {
+                                                            const obj = {}; headers2.forEach((h, idx) => { if(h) obj[h] = row[idx]; }); return obj;
+                                                        }));
+                                                    } else reject(new Error("CSV 인코딩/헤더를 인식할 수 없습니다."));
                                                 }
-                                            }
-                                        });
-                                    };
-                                    reader2.readAsText(uploadedFile, 'EUC-KR');
-                                }
-                            },
-                            error: (err) => { setError(err.message); setIsLoading(false); }
-                        });
-                    };
-                    reader.readAsText(uploadedFile);
-                } else if (['xlsx', 'xls'].includes(ext)) {
-                    reader.onload = (e) => {
-                        try {
-                            const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-                            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                            const rawRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
-                            const hIdx = findHeaderRowIndex(rawRows);
-                            const headers = rawRows[hIdx]?.map(h => String(h || '').trim());
-                            
-                            if (!headers || !headers.includes('학번')) {
-                                throw new Error("엑셀 파일에서 '학번' 헤더를 찾을 수 없습니다.");
-                            }
-
-                            const jsonData = rawRows.slice(hIdx + 1).map(row => {
-                                const obj = {};
-                                headers.forEach((h, idx) => {
-                                    if(h) {
-                                        const val = row[idx] !== undefined ? row[idx] : '';
-                                        obj[h] = val;
+                                            });
+                                        };
+                                        reader2.readAsText(file, 'EUC-KR');
                                     }
-                                });
-                                return obj;
+                                },
+                                error: (err) => reject(new Error(err.message))
                             });
-                            
-                            processJsonData(jsonData);
-                        } catch (err) {
-                            setError(`엑셀 파싱 오류: ${err.message}`);
-                            setIsLoading(false);
-                        }
-                    };
-                    reader.readAsArrayBuffer(uploadedFile);
-                } else {
-                    setError("지원하지 않는 파일 형식입니다.");
+                        };
+                        reader.readAsText(file);
+                    } else if (['xlsx', 'xls'].includes(ext)) {
+                        reader.onload = (e) => {
+                            try {
+                                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                                const rawRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+                                const hIdx = findHeaderRowIndex(rawRows);
+                                const headers = rawRows[hIdx]?.map(h => String(h || '').trim());
+                                if (!headers || !headers.includes('학번')) throw new Error("엑셀에서 '학번'을 찾을 수 없습니다.");
+                                resolve(rawRows.slice(hIdx + 1).map(row => {
+                                    const obj = {}; headers.forEach((h, idx) => { if(h) obj[h] = row[idx] !== undefined ? row[idx] : ''; }); return obj;
+                                }));
+                            } catch (err) { reject(new Error(`엑셀 오류: ${err.message}`)); }
+                        };
+                        reader.readAsArrayBuffer(file);
+                    } else {
+                        reject(new Error(`지원하지 않는 파일 형식: ${file.name}`));
+                    }
+                });
+            };
+
+            const handleProcess = async () => {
+                if (!uploadedFiles || uploadedFiles.length === 0) {
+                    setError("파일을 선택해주세요."); return;
+                }
+                setIsLoading(true); setError(null);
+
+                try {
+                    let allRawData = [];
+                    for (const file of uploadedFiles) {
+                        const data = await parseFile(file);
+                        allRawData = allRawData.concat(data);
+                    }
+
+                    if (allRawData.length === 0) throw new Error("추출된 데이터가 없습니다.");
+
+                    const grade2Data = [];
+                    const grade3Data = [];
+
+                    allRawData.forEach(row => {
+                        const newRow = {};
+                        Object.keys(row).forEach(key => {
+                            const cleanKey = key.trim();
+                            if (cleanKey) newRow[cleanKey] = row[key];
+                        });
+                        
+                        const stId = String(newRow['학번'] || '').trim();
+                        if (stId.startsWith('2')) grade2Data.push(newRow);
+                        else if (stId.startsWith('3')) grade3Data.push(newRow);
+                    });
+
+                    if (grade2Data.length === 0 && grade3Data.length === 0) {
+                        throw new Error("2학년 또는 3학년 데이터를 찾을 수 없습니다. 학번을 확인해주세요.");
+                    }
+
+                    const t2 = transformData(grade2Data);
+                    const t3 = transformData(grade3Data);
+
+                    setTransformedDataByGrade({ '2': t2, '3': t3 });
+                    setClassDataByGrade({ '2': groupDataByClass(t2), '3': groupDataByClass(t3) });
+
+                    if (t2.length > 0) setActiveGrade('2');
+                    else if (t3.length > 0) setActiveGrade('3');
+
+                    setStep(2);
+                } catch (e) {
+                    setError(`처리 오류: ${e.message}`);
+                } finally {
                     setIsLoading(false);
                 }
-            }, [uploadedFile, transformData]);
+            };
 
             const handleReset = () => {
-                setStep(1); setUploadedFile(null); setTransformedData(null); setClassData(null);
-                setDisplayView({ type: 'individual', key: 'all' });
-                // Ensure input is cleared on reset as well for safety
+                setStep(1); setUploadedFiles([]); 
+                setTransformedDataByGrade({}); setClassDataByGrade({});
+                setActiveGrade('2'); setDisplayView({ type: 'individual', key: 'all', viewMode: 'table' });
+                setElectiveConfig({ code: '', subject: '', teacher: '', cols: 6, generated: false, randomData: [] });
                 if (fileInputRef.current) fileInputRef.current.value = '';
             };
 
+            // 선택과목 좌석표 생성 및 셔플 함수
+            const handleGenerateSeatMap = (isRandom) => {
+                const currentData = transformedDataByGrade[activeGrade] || [];
+                let dataToUse = currentData.filter(row => row[electiveConfig.code] && row[electiveConfig.code].includes(electiveConfig.subject));
+                
+                if (isRandom) {
+                    // Fisher-Yates shuffle
+                    let shuffled = [...dataToUse];
+                    for (let i = shuffled.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                    }
+                    dataToUse = shuffled;
+                } else {
+                    // 원래 학번 오름차순
+                    dataToUse = [...dataToUse].sort((a, b) => parseInt(a['학번'], 10) - parseInt(b['학번'], 10));
+                }
+
+                setElectiveConfig({
+                    ...electiveConfig,
+                    generated: true,
+                    randomData: dataToUse
+                });
+            };
+
+            // --- 렌더링 콘텐츠 결정 ---
             const getDisplayContent = () => {
-                if (!transformedData) return null;
+                const currentData = transformedDataByGrade[activeGrade];
+                const currentClassMap = classDataByGrade[activeGrade];
+
+                if (!currentData || currentData.length === 0) return null;
+
                 if (displayView.type === 'individual') {
-                    const grade = transformedData[0]?.['학번']?.[0] || '1'; 
                     return { 
-                        title: `${academicYear}학년도 ${semester} 선택과목 현황 (전체)`, 
-                        data: transformedData, grade 
+                        title: `${academicYear}학년도 ${semester} ${activeGrade}학년 선택과목 현황 (전체)`, 
+                        subtitle: '',
+                        data: currentData, grade: activeGrade 
                     };
                 }
-                if (displayView.type === 'class' && classData) {
-                    const data = classData.get(displayView.key) || [];
-                    const grade = displayView.key[0];
+                if (displayView.type === 'class' && currentClassMap) {
+                    const data = currentClassMap.get(displayView.key) || [];
+                    let titleSuffix = '선택과목 현황';
+                    if (displayView.viewMode === 'seat5') titleSuffix = '좌석표 (5열)';
+                    if (displayView.viewMode === 'seat6') titleSuffix = '좌석표 (6열)';
+                    
                     return { 
-                        title: `${academicYear}학년도 ${semester} ${displayView.key}반 선택과목 현황`, 
-                        data, grade 
+                        title: `${academicYear}학년도 ${semester} ${displayView.key}반 ${titleSuffix}`, 
+                        subtitle: '',
+                        data, grade: activeGrade 
                     };
+                }
+                if (displayView.type === 'elective') {
+                    if (!electiveConfig.generated || !electiveConfig.code || !electiveConfig.subject) {
+                        return { title: '선택과목 좌석표 설정 중...', subtitle: '', data: [], grade: activeGrade };
+                    }
+                    const data = electiveConfig.randomData;
+                    return {
+                        title: `${academicYear}학년도 ${semester} ${activeGrade}학년 [${electiveConfig.subject}] 좌석표`,
+                        subtitle: electiveConfig.teacher ? `지도교사 : ${electiveConfig.teacher}` : '',
+                        data, grade: activeGrade
+                    }
                 }
                 return null;
             };
@@ -573,53 +615,131 @@
                 const base = ['학번', '이름'];
                 const grade2Codes = ['A', 'B', 'C', 'D', 'E'];
                 const grade3Codes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-                
-                if (displayedContent.grade === '2') return [...base, ...grade2Codes];
-                if (displayedContent.grade === '3') return [...base, ...grade3Codes];
-
-                const extended = ['F', 'G', 'H', 'I', 'J'];
-                const hasExtended = displayedContent.data.some(row => extended.some(c => row[c]));
-                return hasExtended ? [...base, ...grade3Codes] : [...base, ...grade2Codes];
+                return activeGrade === '3' ? [...base, ...grade3Codes] : [...base, ...grade2Codes];
             };
             const columns = getColumns();
 
-            // --- CSV Download Handler ---
+            // 선택과목 드롭다운을 위한 데이터 추출
+            const currentGradeData = transformedDataByGrade[activeGrade] || [];
+            const availableCodes = activeGrade === '3' ? ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'] : ['A', 'B', 'C', 'D', 'E'];
+            
+            // 전체 과목 및 해당 과목이 속한 코드 매핑 추출
+            const getSubjectCodeMap = () => {
+                const map = new Map();
+                if (!currentGradeData || currentGradeData.length === 0) return map;
+                currentGradeData.forEach(row => {
+                    availableCodes.forEach(code => {
+                        if (row[code]) {
+                            row[code].split(',').forEach(s => {
+                                const sub = s.trim();
+                                if (sub) {
+                                    if (!map.has(sub)) map.set(sub, new Set());
+                                    map.get(sub).add(code);
+                                }
+                            });
+                        }
+                    });
+                });
+                return map;
+            };
+            const subjectCodeMap = getSubjectCodeMap();
+            const allAvailableSubjects = Array.from(subjectCodeMap.keys()).sort();
+            
+            const validCodesForSubject = electiveConfig.subject 
+                ? Array.from(subjectCodeMap.get(electiveConfig.subject) || []).sort() 
+                : availableCodes;
+
+            // 과목 변경 핸들러 (과목 선택 시 코드가 1개면 자동 선택)
+            const handleSubjectChange = (e) => {
+                const subject = e.target.value;
+                let code = electiveConfig.code;
+                if (subject) {
+                    const codes = Array.from(subjectCodeMap.get(subject) || []);
+                    if (codes.length === 1) {
+                        code = codes[0]; 
+                    } else if (!codes.includes(code)) {
+                        code = ''; 
+                    }
+                }
+                setElectiveConfig({ ...electiveConfig, subject, code, generated: false });
+            };
+
+            // 코드 변경 핸들러
+            const handleCodeChange = (e) => {
+                setElectiveConfig({ ...electiveConfig, code: e.target.value, generated: false });
+            };
+
+            // --- CSV 다운로드 (항상 표 데이터 기준) ---
             const handleDownloadCSV = () => {
                 if (!displayedContent) return;
-
                 const { title, data } = displayedContent;
-                // Use the calculated columns for order
-                const csvColumns = columns;
-                
-                // Map data to ensure correct column order
                 const csvData = data.map(row => {
                     const rowData = {};
-                    csvColumns.forEach(col => {
-                        rowData[col] = row[col] || '';
-                    });
+                    columns.forEach(col => rowData[col] = row[col] || '');
                     return rowData;
                 });
-
-                // Generate CSV with BOM for Korean support
-                const csv = Papa.unparse({
-                    fields: csvColumns,
-                    data: csvData
-                });
+                const csv = Papa.unparse({ fields: columns, data: csvData });
                 const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement("a");
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
+                link.setAttribute("href", URL.createObjectURL(blob));
                 link.setAttribute("download", `${title}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            };
+
+            // --- 좌석표 렌더링 로직 (위에서 아래로 채우기) ---
+            const renderSeatMap = (data, cols) => {
+                if (!data || data.length === 0) return <div className="p-8 text-center text-gray-500">데이터가 없습니다.</div>;
+                
+                const total = data.length;
+                const rows = Math.ceil(total / cols);
+                const grid = Array.from({ length: rows }, () => Array(cols).fill(null));
+                
+                // 열을 우선하여 채움 (이미지 규칙: 좌측상단 -> 하단 -> 우측이동)
+                for (let c = 0; c < cols; c++) {
+                    for (let r = 0; r < rows; r++) {
+                        const studentIndex = (c * rows) + r;
+                        if (studentIndex < total) {
+                            grid[r][c] = {
+                                num: studentIndex + 1,
+                                student: data[studentIndex]
+                            };
+                        }
+                    }
+                }
+
+                return (
+                    <div className="seat-wrapper">
+                        <div className="chalkboard">교 탁</div>
+                        <table className="seat-table">
+                            <tbody>
+                                {grid.map((rowArr, rIdx) => (
+                                    <tr key={rIdx}>
+                                        {rowArr.map((cell, cIdx) => (
+                                            <td key={cIdx} className={cell ? 'filled-seat' : ''}>
+                                                {cell ? (
+                                                    <>
+                                                        <div className="seat-number">{cell.num}</div>
+                                                        <div className="seat-student">
+                                                            <div className="seat-student-name">{cell.student['이름']}</div>
+                                                            <div className="seat-student-id">{cell.student['학번']}</div>
+                                                        </div>
+                                                    </>
+                                                ) : null}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                );
             };
 
             return (
                 <div className="app-container">
                     <header className="hero-header no-print">
                         <h1 className="hero-title">선택과목 코드 변환 시스템</h1>
-                        <p className="hero-subtitle">학년별, 학급별 선택과목 자동 변환 (CSV / Excel)</p>
+                        <p className="hero-subtitle">학년별, 학급별 선택과목 동시 변환 및 좌석표 생성</p>
                     </header>
 
                     <main className="main-content">
@@ -632,7 +752,7 @@
                             <div className="absolute top-4 w-40 border-t-2 border-gray-200 z-0"></div>
                             <div className={`step-item ${step >= 2 ? 'active' : ''}`}>
                                 <div className="step-icon">2</div>
-                                <span className="step-label mt-2">결과 확인</span>
+                                <span className="step-label mt-2">결과 및 좌석표</span>
                             </div>
                         </div>
 
@@ -640,17 +760,17 @@
                             <div className="card">
                                 <div className="config-grid">
                                     <div className="form-group">
-                                        <label>학년도</label>
+                                        <label className="block text-sm font-medium mb-1">학년도</label>
                                         <input type="number" className="form-control" value={academicYear} onChange={(e) => setAcademicYear(e.target.value)} />
                                     </div>
                                     <div className="form-group">
-                                        <label>학기</label>
+                                        <label className="block text-sm font-medium mb-1">학기</label>
                                         <select className="form-control" value={semester} onChange={(e) => setSemester(e.target.value)}>
                                             <option>1학기</option><option>2학기</option>
                                         </select>
                                     </div>
                                     <div className="form-group">
-                                        <label>학교 로고</label>
+                                        <label className="block text-sm font-medium mb-1">학교 로고</label>
                                         <div className="flex gap-2 items-center">
                                             {schoolLogo && (
                                                 <div className="w-10 h-10 border rounded overflow-hidden flex-shrink-0 bg-white">
@@ -660,14 +780,12 @@
                                             <button className="btn btn-secondary w-full justify-center" onClick={() => logoInputRef.current?.click()}>
                                                 <i className="ph ph-image"></i> {schoolLogo ? "변경" : "등록"}
                                             </button>
-                                            
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Hidden Inputs Moved Outside */}
                                 <input type="file" ref={logoInputRef} onChange={handleLogoChange} className="hidden" accept="image/*" />
-                                <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept=".csv, .xlsx, .xls" />
+                                <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept=".csv, .xlsx, .xls" multiple />
 
                                 <div 
                                     className={`dropzone-area ${isDragging ? 'dragging' : ''}`} 
@@ -676,9 +794,13 @@
                                     onDragLeave={onDragLeave}
                                     onDrop={onDrop}
                                 >
-                                    <i className={`ph ${uploadedFile ? 'ph-file-csv text-green-600' : 'ph-upload-simple text-gray-400'} text-5xl mb-2`}></i>
-                                    <div className="font-bold text-lg text-gray-700">{uploadedFile ? uploadedFile.name : "파일 선택"}</div>
-                                    <div className="text-sm text-gray-500 mt-1">{uploadedFile ? "파일이 준비되었습니다." : "클릭하거나 파일을 드래그하세요"}</div>
+                                    <i className={`ph ${uploadedFiles.length > 0 ? 'ph-files text-indigo-600' : 'ph-upload-simple text-gray-400'} text-5xl mb-2`}></i>
+                                    <div className="font-bold text-lg text-gray-700">
+                                        {uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name).join(', ') : "파일 선택 (다중 선택 가능)"}
+                                    </div>
+                                    <div className="text-sm text-gray-500 mt-1">
+                                        {uploadedFiles.length > 0 ? `${uploadedFiles.length}개의 파일이 준비되었습니다.` : "2학년, 3학년 파일을 동시에 선택하거나 드래그하세요"}
+                                    </div>
                                 </div>
 
                                 {error && (
@@ -688,63 +810,167 @@
                                 )}
 
                                 <div className="action-bar">
-                                    <button className="btn btn-primary" onClick={handleProcess} disabled={!uploadedFile || isLoading}>
+                                    <button className="btn btn-primary" onClick={handleProcess} disabled={uploadedFiles.length === 0 || isLoading}>
                                         {isLoading ? <><i className="ph ph-spinner animate-spin"></i> 처리 중...</> : <><i className="ph ph-magic-wand"></i> 변환 시작</>}
                                     </button>
                                 </div>
                             </div>
                         )}
 
-                        {step === 2 && displayedContent && (
+                        {step === 2 && (
                             <div className="result-section">
-                                <div className="result-header no-print">
-                                    <div className="flex items-center gap-4 flex-1">
-                                        <h2 className="result-title">변환 결과</h2>
-                                        <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-medium">총 {displayedContent.data.length}명</span>
-                                    </div>
-                                    <div className="flex gap-2 items-center flex-wrap">
-                                        {classData && (
-                                            <div className="result-tabs">
-                                                <button className={`tab-btn ${displayView.type === 'individual' ? 'active' : ''}`} onClick={() => setDisplayView({ type: 'individual', key: 'all'})}>전체</button>
-                                                {Array.from(classData.keys()).map(cls => (
-                                                    <button key={cls} className={`tab-btn ${displayView.type === 'class' && displayView.key === cls ? 'active' : ''}`} onClick={() => setDisplayView({ type: 'class', key: cls})}>{cls}반</button>
-                                                ))}
-                                            </div>
-                                        )}
-                                        <div className="w-px h-8 bg-gray-200 mx-2 hidden md:block"></div>
-                                        <button className="btn btn-secondary" onClick={handleReset}><i className="ph ph-arrow-counter-clockwise"></i> 처음으로</button>
-                                        <button className="btn btn-success" onClick={handleDownloadCSV}><i className="ph ph-file-csv"></i> 엑셀 다운로드</button>
-                                        <button className="btn btn-primary" onClick={() => window.print()}><i className="ph ph-printer"></i> 인쇄</button>
-                                    </div>
+                                {/* 학년 탭 */}
+                                <div className="grade-tabs flex gap-2 mb-4 border-b pb-2">
+                                    <button 
+                                        className={`px-6 py-2 rounded-t-lg font-bold text-lg transition-colors ${activeGrade === '2' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
+                                        onClick={() => setActiveGrade('2')}
+                                        disabled={!transformedDataByGrade['2'] || transformedDataByGrade['2'].length === 0}
+                                    >
+                                        2학년 {transformedDataByGrade['2'] ? `(${transformedDataByGrade['2'].length}명)` : ''}
+                                    </button>
+                                    <button 
+                                        className={`px-6 py-2 rounded-t-lg font-bold text-lg transition-colors ${activeGrade === '3' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
+                                        onClick={() => setActiveGrade('3')}
+                                        disabled={!transformedDataByGrade['3'] || transformedDataByGrade['3'].length === 0}
+                                    >
+                                        3학년 {transformedDataByGrade['3'] ? `(${transformedDataByGrade['3'].length}명)` : ''}
+                                    </button>
                                 </div>
 
-                                {/* Print Header */}
-                                <div className="print-header-container">
-                                    <h1 className="print-title">{displayedContent.title}</h1>
-                                    {schoolLogo && <img src={schoolLogo} alt="Logo" className="print-logo" />}
-                                </div>
-
-                                <div className="table-wrapper">
-                                    <table className="data-table">
-                                        <thead>
-                                            <tr>
-                                                {columns.map(col => <th key={col}>{col}</th>)}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {displayedContent.data.map((row, idx) => (
-                                                <tr key={idx}>
-                                                    {columns.map(col => <td key={col}>{row[col] || ''}</td>)}
-                                                </tr>
+                                <div className="result-header no-print mb-4 flex flex-col gap-4">
+                                    <div className="flex justify-between items-center w-full flex-wrap gap-4">
+                                        {/* 반 탭 */}
+                                        <div className="result-tabs flex-1">
+                                            <button className={`tab-btn ${displayView.type === 'individual' ? 'active' : ''}`} onClick={() => setDisplayView({ type: 'individual', key: 'all', viewMode: 'table'})}>전체 명렬표</button>
+                                            {Array.from(classDataByGrade[activeGrade]?.keys() || []).map(cls => (
+                                                <button key={cls} className={`tab-btn ${displayView.type === 'class' && displayView.key === cls ? 'active' : ''}`} onClick={() => setDisplayView({ type: 'class', key: cls, viewMode: displayView.viewMode})}>{cls}반</button>
                                             ))}
-                                        </tbody>
-                                    </table>
+                                            <button className={`tab-btn ${displayView.type === 'elective' ? 'active' : ''} !bg-indigo-100 !text-indigo-800 !border-indigo-300 hover:!bg-indigo-200`} onClick={() => setDisplayView({ type: 'elective', key: 'elective', viewMode: 'seat6'})}>
+                                                <i className="ph ph-squares-four mr-1"></i> 선택과목 좌석표
+                                            </button>
+                                        </div>
+
+                                        {/* 뷰 모드 및 액션 버튼 */}
+                                        <div className="flex gap-4 items-center flex-wrap">
+                                            {displayView.type === 'class' && (
+                                                <div className="view-mode-toggles flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+                                                    <button className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${displayView.viewMode === 'table' ? 'bg-white shadow text-indigo-700' : 'text-gray-600 hover:bg-gray-200'}`} onClick={() => setDisplayView({...displayView, viewMode: 'table'})}><i className="ph ph-table mr-1"></i>명렬표</button>
+                                                    <button className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${displayView.viewMode === 'seat5' ? 'bg-white shadow text-indigo-700' : 'text-gray-600 hover:bg-gray-200'}`} onClick={() => setDisplayView({...displayView, viewMode: 'seat5'})}><i className="ph ph-squares-four mr-1"></i>좌석(5열)</button>
+                                                    <button className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${displayView.viewMode === 'seat6' ? 'bg-white shadow text-indigo-700' : 'text-gray-600 hover:bg-gray-200'}`} onClick={() => setDisplayView({...displayView, viewMode: 'seat6'})}><i className="ph ph-squares-four mr-1"></i>좌석(6열)</button>
+                                                </div>
+                                            )}
+                                            
+                                            <div className="flex gap-2">
+                                                <button className="btn btn-secondary text-sm" onClick={handleReset}><i className="ph ph-arrow-counter-clockwise"></i> 처음으로</button>
+                                                <button className="btn btn-success text-sm" onClick={handleDownloadCSV}><i className="ph ph-file-csv"></i> 엑셀 다운로드</button>
+                                                <button className="btn btn-primary text-sm" onClick={() => window.print()}><i className="ph ph-printer"></i> 인쇄</button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                {/* Print Footer (Date) */}
-                                <div className="print-footer">
-                                    출력일: {new Date().toLocaleDateString()}
-                                </div>
+                                {/* 선택과목 드롭다운 및 랜덤 배치 설정 UI */}
+                                {displayView.type === 'elective' && (
+                                    <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100 mb-6 flex flex-col gap-4 no-print">
+                                        <div className="flex flex-wrap gap-4 items-end">
+                                            <div className="flex-1 min-w-[200px]">
+                                                <label className="block text-sm font-bold text-indigo-900 mb-1">선택 과목</label>
+                                                <select className="form-control" value={electiveConfig.subject} onChange={handleSubjectChange}>
+                                                    <option value="">과목을 선택하세요</option>
+                                                    {allAvailableSubjects.map(s => <option key={s} value={s}>{s}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="flex-1 min-w-[150px]">
+                                                <label className="block text-sm font-bold text-indigo-900 mb-1">과목 코드</label>
+                                                <select className="form-control" value={electiveConfig.code} onChange={handleCodeChange}>
+                                                    <option value="">코드 선택 (A~J)</option>
+                                                    {validCodesForSubject.map(c => <option key={c} value={c}>{c} 코드</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="flex-1 min-w-[150px]">
+                                                <label className="block text-sm font-bold text-indigo-900 mb-1">담당 교사 (선택)</label>
+                                                <input 
+                                                    type="text" 
+                                                    className="form-control" 
+                                                    placeholder="예: 홍길동" 
+                                                    value={electiveConfig.teacher} 
+                                                    onChange={(e) => setElectiveConfig({...electiveConfig, teacher: e.target.value})} 
+                                                />
+                                            </div>
+                                            <div className="w-[120px]">
+                                                <label className="block text-sm font-bold text-indigo-900 mb-1">좌석 열 수</label>
+                                                <select className="form-control" value={electiveConfig.cols} onChange={(e) => setElectiveConfig({...electiveConfig, cols: parseInt(e.target.value)})}>
+                                                    <option value={5}>5열</option>
+                                                    <option value={6}>6열</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex gap-2 justify-end mt-2 pt-4 border-t border-indigo-200">
+                                            <button 
+                                                className="btn btn-secondary !bg-white hover:!bg-gray-50 h-[46px]" 
+                                                onClick={() => handleGenerateSeatMap(false)}
+                                                disabled={!electiveConfig.code || !electiveConfig.subject}
+                                            >
+                                                <i className="ph ph-sort-ascending"></i> 명렬표 순 배치
+                                            </button>
+                                            <button 
+                                                className="btn btn-primary h-[46px]" 
+                                                onClick={() => handleGenerateSeatMap(true)}
+                                                disabled={!electiveConfig.code || !electiveConfig.subject}
+                                            >
+                                                <i className="ph ph-shuffle"></i> 랜덤 좌석 배치
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {displayedContent && (displayView.type !== 'elective' || electiveConfig.generated) ? (
+                                    <>
+                                        {/* Print Header */}
+                                        <div className="print-header-container">
+                                            <div className="w-full">
+                                                <h1 className="print-title">{displayedContent.title}</h1>
+                                                {displayedContent.subtitle && (
+                                                    <div className="print-subtitle">{displayedContent.subtitle}</div>
+                                                )}
+                                            </div>
+                                            {schoolLogo && <img src={schoolLogo} alt="Logo" className="print-logo" />}
+                                        </div>
+
+                                        {displayView.type === 'elective' ? (
+                                            renderSeatMap(displayedContent.data, electiveConfig.cols)
+                                        ) : displayView.viewMode === 'table' ? (
+                                            <div className="table-wrapper">
+                                                <table className="data-table">
+                                                    <thead>
+                                                        <tr>
+                                                            {columns.map(col => <th key={col}>{col}</th>)}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {displayedContent.data.map((row, idx) => (
+                                                            <tr key={idx}>
+                                                                {columns.map(col => <td key={col}>{row[col] || ''}</td>)}
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            renderSeatMap(displayedContent.data, displayView.viewMode === 'seat5' ? 5 : 6)
+                                        )}
+
+                                        {/* Print Footer */}
+                                        <div className="print-footer">
+                                            출력일: {new Date().toLocaleDateString()}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="text-center py-10 text-gray-500 font-medium">
+                                        {displayView.type === 'elective' ? '코드와 과목을 선택한 후 좌석 배치를 실행해주세요.' : '선택된 학년/반의 데이터가 없습니다.'}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </main>
