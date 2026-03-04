@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>선택과목 코드 변환 시스템</title>
+    <title>선택과목 명렬표/좌석표 출력 시스템</title>
     
     <!-- Libraries -->
     <script src="https://unpkg.com/papaparse@5.3.2/papaparse.min.js"></script>
@@ -220,29 +220,33 @@
             }
             .data-table th { background-color: #eef2ff !important; color: black !important; -webkit-print-color-adjust: exact; position: static !important; }
             
+            /* Reduced paddings and margins to ensure fit on one page */
             .print-header-container {
-                display: flex !important; flex-direction: column; justify-content: center; position: relative; width: 100%; margin-bottom: 5px; padding-bottom: 5px; border-bottom: 2px solid black; min-height: 70px; 
+                display: flex !important; flex-direction: column; justify-content: center; position: relative; width: 100%; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 2px solid black; min-height: 60px; 
             }
-            .print-title { text-align: center; font-size: 20pt; font-weight: bold; width: 100%; margin: 0; z-index: 1; }
-            .print-subtitle { text-align: center; font-size: 14pt; font-weight: bold; width: 100%; margin-top: 5px; z-index: 1; }
+            .print-title { text-align: center; font-size: 18pt; font-weight: bold; width: 100%; margin: 0; z-index: 1; }
+            .print-subtitle { text-align: center; font-size: 12pt; font-weight: bold; width: 100%; margin-top: 2px; z-index: 1; }
             
-            .print-logo { position: absolute; right: 0; bottom: -25px; width: 110px; height: 110px; object-fit: contain; z-index: 2; }
+            .print-logo { position: absolute; right: 0; bottom: -15px; width: 80px; height: 80px; object-fit: contain; z-index: 2; }
 
-            .print-footer { display: block !important; text-align: right; font-size: 10pt; margin-top: 4px; color: black; }
+            .print-footer { display: block !important; text-align: right; font-size: 9pt; margin-top: 2px; color: black; }
 
-            /* Seat Map Print Enhancements */
+            /* Seat Map Print Enhancements - Height Decreased */
             .seat-wrapper { box-shadow: none; margin: 0; padding: 0; }
-            .chalkboard { background: #e2e8f0 !important; color: black !important; -webkit-print-color-adjust: exact; border: 2px solid black !important; margin-bottom: 1.5rem; }
-            .seat-table { border-spacing: 12px !important; }
-            .seat-table td { border: none !important; }
+            .chalkboard { background: #e2e8f0 !important; color: black !important; -webkit-print-color-adjust: exact; border: 2px solid black !important; margin-bottom: 0.8rem; height: 28px !important; font-size: 1rem !important; }
+            .seat-table { border-spacing: 8px !important; } /* Reduced spacing */
+            .seat-table td { border: none !important; height: 80px !important; padding: 8px !important; } /* Reduced height and padding */
             .filled-seat {
                 border: 2px solid #334155 !important;
-                border-radius: 12px !important;
-                box-shadow: 4px 4px 0px 0px #cbd5e1 !important; /* Hard shadow for clear 3D effect in print */
+                border-radius: 10px !important;
+                box-shadow: 3px 3px 0px 0px #cbd5e1 !important; /* Slightly smaller shadow */
                 background: white !important;
                 -webkit-print-color-adjust: exact;
             }
-            .seat-number { color: #64748b !important; }
+            .seat-number { top: 6px !important; left: 8px !important; font-size: 1rem !important; color: #64748b !important; }
+            .seat-student { margin-top: 1rem !important; }
+            .seat-student-name { font-size: 1.25rem !important; }
+            .seat-student-id { font-size: 0.85rem !important; }
         }
         .print-header-container { display: none; }
         .print-footer { display: none; }
