@@ -600,7 +600,7 @@
                     }
                     const data = electiveConfig.randomData;
                     return {
-                        title: `${academicYear}학년도 ${semester} ${activeGrade}학년 [${electiveConfig.subject}] 좌석표`,
+                        title: `${academicYear}학년도 ${semester} ${activeGrade}학년 [${electiveConfig.subject} (${electiveConfig.code})] 좌석표`,
                         subtitle: electiveConfig.teacher ? `지도교사 : ${electiveConfig.teacher}` : '',
                         data, grade: activeGrade
                     }
